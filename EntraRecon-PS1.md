@@ -1,4 +1,4 @@
-# Enumerate-EntraUsers.ps1 - Documentation
+# Invoke-EntraRecon.ps1 - Documentation
 
 A comprehensive PowerShell script for Azure Entra ID user enumeration and security assessment, designed for cloud penetration testing and red team operations.
 
@@ -17,7 +17,7 @@ A comprehensive PowerShell script for Azure Entra ID user enumeration and securi
 
 ## Overview
 
-`Enumerate-EntraUsers.ps1` is part of the EvilMist toolkit. It provides extensive enumeration capabilities for Azure Entra ID (formerly Azure Active Directory) environments. The script is designed to work in restricted environments where direct user enumeration may be blocked, offering 15+ fallback methods to discover users.
+`Invoke-EntraRecon.ps1` is part of the EvilMist toolkit. It provides extensive enumeration capabilities for Azure Entra ID (formerly Azure Active Directory) environments. The script is designed to work in restricted environments where direct user enumeration may be blocked, offering 15+ fallback methods to discover users.
 
 **Key Capabilities:**
 - Multiple user enumeration methods with automatic fallback
@@ -54,7 +54,7 @@ A comprehensive PowerShell script for Azure Entra ID user enumeration and securi
 $PSVersionTable.PSVersion
 
 # Run the script
-.\Enumerate-EntraUsers.ps1
+.\Invoke-EntraRecon.ps1
 ```
 
 ---
@@ -221,60 +221,60 @@ The script supports multiple authentication methods:
 
 ```powershell
 # Run in interactive mode
-.\Enumerate-EntraUsers.ps1
+.\Invoke-EntraRecon.ps1
 ```
 
 ### Non-Interactive Export
 
 ```powershell
 # Export all users to CSV
-.\Enumerate-EntraUsers.ps1 -ExportPath "users.csv"
+.\Invoke-EntraRecon.ps1 -ExportPath "users.csv"
 
 # Export to JSON
-.\Enumerate-EntraUsers.ps1 -ExportPath "users.json"
+.\Invoke-EntraRecon.ps1 -ExportPath "users.json"
 ```
 
 ### Use Cached Tokens
 
 ```powershell
 # Use Azure CLI token
-.\Enumerate-EntraUsers.ps1 -UseAzCliToken
+.\Invoke-EntraRecon.ps1 -UseAzCliToken
 
 # Use Azure PowerShell token
-.\Enumerate-EntraUsers.ps1 -UseAzPowerShellToken
+.\Invoke-EntraRecon.ps1 -UseAzPowerShellToken
 ```
 
 ### Target Specific Tenant
 
 ```powershell
 # Enumerate specific tenant
-.\Enumerate-EntraUsers.ps1 -TenantId "contoso.onmicrosoft.com"
+.\Invoke-EntraRecon.ps1 -TenantId "contoso.onmicrosoft.com"
 
 # With tenant GUID
-.\Enumerate-EntraUsers.ps1 -TenantId "12345678-1234-1234-1234-123456789012"
+.\Invoke-EntraRecon.ps1 -TenantId "12345678-1234-1234-1234-123456789012"
 ```
 
 ### Stealth Mode
 
 ```powershell
 # Enable stealth with defaults (500ms delay, 300ms jitter)
-.\Enumerate-EntraUsers.ps1 -EnableStealth
+.\Invoke-EntraRecon.ps1 -EnableStealth
 
 # Custom stealth settings
-.\Enumerate-EntraUsers.ps1 -RequestDelay 2 -RequestJitter 1
+.\Invoke-EntraRecon.ps1 -RequestDelay 2 -RequestJitter 1
 
 # Stealth with quiet output
-.\Enumerate-EntraUsers.ps1 -EnableStealth -QuietStealth
+.\Invoke-EntraRecon.ps1 -EnableStealth -QuietStealth
 ```
 
 ### Combined Examples
 
 ```powershell
 # Stealth export to specific tenant
-.\Enumerate-EntraUsers.ps1 -TenantId "target.com" -EnableStealth -ExportPath "output.json"
+.\Invoke-EntraRecon.ps1 -TenantId "target.com" -EnableStealth -ExportPath "output.json"
 
 # Maximum stealth configuration
-.\Enumerate-EntraUsers.ps1 -RequestDelay 5 -RequestJitter 2 -MaxRetries 5 -QuietStealth -ExportPath "stealth_enum.csv"
+.\Invoke-EntraRecon.ps1 -RequestDelay 5 -RequestJitter 2 -MaxRetries 5 -QuietStealth -ExportPath "stealth_enum.csv"
 ```
 
 ---

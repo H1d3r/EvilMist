@@ -23,8 +23,8 @@ Comprehensive Azure Entra ID (Azure AD) user enumeration and security assessment
 
 | Version | Documentation | File |
 |---------|---------------|------|
-| PowerShell | [Enumerate-EntraUsers-PS1.md](Enumerate-EntraUsers-PS1.md) | `Enumerate-EntraUsers.ps1` |
-| Python | [Enumerate-EntraUsers-PY.md](Enumerate-EntraUsers-PY.md) | `Enumerate-EntraUsers.py` |
+| PowerShell | [EntraRecon-PS1.md](EntraRecon-PS1.md) | `Invoke-EntraRecon.ps1` |
+| Python | [EntraRecon-PY.md](EntraRecon-PY.md) | `entra_recon.py` |
 
 ---
 
@@ -36,19 +36,19 @@ Comprehensive Azure Entra ID (Azure AD) user enumeration and security assessment
 
 ```powershell
 # Interactive mode
-.\Enumerate-EntraUsers.ps1
+.\Invoke-EntraRecon.ps1
 
 # With Azure CLI token
-.\Enumerate-EntraUsers.ps1 -UseAzCliToken
+.\Invoke-EntraRecon.ps1 -UseAzCliToken
 
 # Export all users
-.\Enumerate-EntraUsers.ps1 -ExportPath "users.csv"
+.\Invoke-EntraRecon.ps1 -ExportPath "users.csv"
 
 # Stealth mode
-.\Enumerate-EntraUsers.ps1 -EnableStealth
+.\Invoke-EntraRecon.ps1 -EnableStealth
 ```
 
-📖 **Full documentation:** [Enumerate-EntraUsers-PS1.md](Enumerate-EntraUsers-PS1.md)
+📖 **Full documentation:** [EntraRecon-PS1.md](EntraRecon-PS1.md)
 
 ### Python Version
 
@@ -59,10 +59,10 @@ Comprehensive Azure Entra ID (Azure AD) user enumeration and security assessment
 pip install -r requirements.txt
 
 # Run interactive mode
-python Enumerate-EntraUsers.py
+python entra_recon.py
 ```
 
-📖 **Full documentation:** [Enumerate-EntraUsers-PY.md](Enumerate-EntraUsers-PY.md)
+📖 **Full documentation:** [EntraRecon-PY.md](EntraRecon-PY.md)
 
 ---
 
@@ -70,8 +70,8 @@ python Enumerate-EntraUsers.py
 
 | Document | Description |
 |----------|-------------|
-| [Enumerate-EntraUsers-PS1.md](Enumerate-EntraUsers-PS1.md) | Full PowerShell script documentation including all parameters, features, and usage examples |
-| [Enumerate-EntraUsers-PY.md](Enumerate-EntraUsers-PY.md) | Full Python script documentation including authentication methods, stealth configuration, and examples |
+| [EntraRecon-PS1.md](EntraRecon-PS1.md) | Full PowerShell script documentation including all parameters, features, and usage examples |
+| [EntraRecon-PY.md](EntraRecon-PY.md) | Full Python script documentation including authentication methods, stealth configuration, and examples |
 
 ---
 

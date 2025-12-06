@@ -1,4 +1,4 @@
-# Enumerate-EntraUsers.py - Documentation
+# entra_recon.py - Documentation
 
 A comprehensive Python script for Azure Entra ID user enumeration and security assessment, designed for cloud penetration testing and red team operations.
 
@@ -17,7 +17,7 @@ A comprehensive Python script for Azure Entra ID user enumeration and security a
 
 ## Overview
 
-`Enumerate-EntraUsers.py` is part of the EvilMist toolkit. It provides extensive enumeration capabilities for Azure Entra ID (formerly Azure Active Directory) environments using Python and the Microsoft Graph API. The script is designed to work in restricted environments where direct user enumeration may be blocked, offering 15+ fallback methods to discover users.
+`entra_recon.py` is part of the EvilMist toolkit. It provides extensive enumeration capabilities for Azure Entra ID (formerly Azure Active Directory) environments using Python and the Microsoft Graph API. The script is designed to work in restricted environments where direct user enumeration may be blocked, offering 15+ fallback methods to discover users.
 
 **Key Capabilities:**
 - Multiple user enumeration methods with automatic fallback
@@ -239,7 +239,7 @@ You can also use the extended Microsoft Apps database (4000+ App IDs) or provide
 
 ```bash
 # Run in interactive mode
-python Enumerate-EntraUsers.py
+python entra_recon.py
 ```
 
 ### Authentication Examples
@@ -266,7 +266,7 @@ export GRAPH_ACCESS_TOKEN="eyJ0eXAiOiJKV1QiLCJhbGc..."
 export AZURE_ACCESS_TOKEN="eyJ0eXAiOiJKV1QiLCJhbGc..."
 
 # Run script and select option 9 (Environment Variable)
-python Enumerate-EntraUsers.py
+python entra_recon.py
 ```
 
 ### Using Refresh Tokens
@@ -275,7 +275,7 @@ python Enumerate-EntraUsers.py
 # Useful for tokens obtained from other tools
 # Example with ROADtools or TokenTactics output
 
-python Enumerate-EntraUsers.py
+python entra_recon.py
 # Select option 11 (Refresh Token Exchange)
 # Paste the refresh token when prompted
 # Specify tenant ID (or press Enter for 'common')
