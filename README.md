@@ -168,5 +168,5 @@ Contributions are welcome! Please feel free to submit pull requests or open issu
 - [Microsoft Graph API](https://docs.microsoft.com/en-us/graph/) - Primary data source
 - [BloodHound](https://github.com/BloodHoundAD/BloodHound) - Attack path analysis inspiration
 - [AzureHound](https://github.com/BloodHoundAD/AzureHound) - Azure data collection format
-
+- [microsoft-info](https://github.com/merill/microsoft-info) - Microsoft First Party App Names & Graph Permissions 
 ---
