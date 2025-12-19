@@ -273,10 +273,10 @@ MATRIX VIEW - USERS WITHOUT MFA
 
 Risk   Type      Status    User Principal Name         Display Name    Last Sign-In  Department
 ----   ----      ------    -------------------         ------------    ------------  ----------
-HIGH   User      Enabled   john.doe@contoso.com        John Doe        5d ago        IT
-HIGH   User      Enabled   jane.smith@contoso.com      Jane Smith      Today         Sales
-MEDIUM User      Disabled  old.user@contoso.com        Old User        120d ago      Marketing
-LOW    SharedMB  Disabled  shared.conf@contoso.com     Conf Room 1     Never         -
+HIGH   User      Enabled   john.doe@example.com        John Doe        5d ago        IT
+HIGH   User      Enabled   jane.smith@example.com      Jane Smith      Today         Sales
+MEDIUM User      Disabled  old.user@example.com        Old User        120d ago      Marketing
+LOW    SharedMB  Disabled  shared.conf@example.com     Conf Room 1     Never         -
 
 [SUMMARY]
 Total users without MFA: 4
@@ -310,8 +310,8 @@ Total users without MFA: 4
 #### CSV Export
 ```csv
 DisplayName,UserPrincipalName,Email,AccountEnabled,CanSignIn,JobTitle,Department,CreatedDateTime,LastSignIn,LastSignInDisplay,DaysSinceLastSignIn,SignInType,AuthMethods,MethodCount,MFAEnabled,AccountType,IsSharedMailbox,SharedMailboxConfidence,RiskLevel
-John Doe,john.doe@contoso.com,john.doe@contoso.com,True,True,Manager,IT,2023-01-15,2024-12-15,2024-12-15 10:30:00 (4 days ago),4,Interactive,Password Only,1,False,Regular User,False,,HIGH
-Shared Room,shared.room@contoso.com,shared.room@contoso.com,False,False,,,2023-01-10,,,Never,,Password Only,1,False,Shared Mailbox (Suspected),True,High,LOW
+John Doe,john.doe@example.com,john.doe@example.com,True,True,Manager,IT,2023-01-15,2024-12-15,2024-12-15 10:30:00 (4 days ago),4,Interactive,Password Only,1,False,Regular User,False,,HIGH
+Shared Room,shared.room@example.com,shared.room@example.com,False,False,,,2023-01-10,,,Never,,Password Only,1,False,Shared Mailbox (Suspected),True,High,LOW
 ```
 
 #### JSON Export
@@ -319,8 +319,8 @@ Shared Room,shared.room@contoso.com,shared.room@contoso.com,False,False,,,2023-0
 [
   {
     "DisplayName": "John Doe",
-    "UserPrincipalName": "john.doe@contoso.com",
-    "Email": "john.doe@contoso.com",
+    "UserPrincipalName": "john.doe@example.com",
+    "Email": "john.doe@example.com",
     "AccountEnabled": true,
     "CanSignIn": true,
     "JobTitle": "Manager",
@@ -342,8 +342,8 @@ Shared Room,shared.room@contoso.com,shared.room@contoso.com,False,False,,,2023-0
   },
   {
     "DisplayName": "Shared Room",
-    "UserPrincipalName": "shared.room@contoso.com",
-    "Email": "shared.room@contoso.com",
+    "UserPrincipalName": "shared.room@example.com",
+    "Email": "shared.room@example.com",
     "AccountEnabled": false,
     "CanSignIn": false,
     "JobTitle": null,
