@@ -13050,37 +13050,36 @@ def main():
         else:
             print("[!] Invalid option.")
 
-def show_logisek_banner():
+def show_banner():
+    """Display the EvilMist banner"""
     print("")
-
+    
     ascii_art = r"""
-                                                                      
-         _____   ______ _____ _______ _______ _     _
- |      |     | |  ____   |   |______ |______ |____/ 
- |_____ |_____| |_____| __|__ ______| |______ |    \_
-                                                                  
-                                                                      
+███████╗██╗   ██╗██╗██╗     ███╗   ███╗██╗███████╗████████╗
+██╔════╝██║   ██║██║██║     ████╗ ████║██║██╔════╝╚══██╔══╝
+█████╗  ██║   ██║██║██║     ██╔████╔██║██║███████╗   ██║   
+██╔══╝  ╚██╗ ██╔╝██║██║     ██║╚██╔╝██║██║╚════██║   ██║   
+███████╗ ╚████╔╝ ██║███████╗██║ ╚═╝ ██║██║███████║   ██║   
+╚══════╝  ╚═══╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═╝╚══════╝   ╚═╝   
 """
-
     
     try:
         from colorama import Fore, Style
-        print(f"{Fore.MAGENTA}{ascii_art}{Style.RESET_ALL}")
-        print(f"{Fore.YELLOW}  EvilMist - EntraID Reconnaissance v1.0{Style.RESET_ALL}")
+        print(f"{Fore.LIGHTMAGENTA_EX}{ascii_art}{Style.RESET_ALL}")
+        print(f"{Fore.LIGHTYELLOW_EX}    Entra ID Reconnaissance - EvilMist Toolkit{Style.RESET_ALL}")
     except ImportError:
-        
         print(ascii_art)
-
-    print("  GNU General Public License v3.0")
-    print("  https://logisek.com")
-    print("  info@logisek.com")
+        print("    Entra ID Reconnaissance - EvilMist Toolkit")
+    
+    print("    https://logisek.com | info@logisek.com")
+    print("    GNU General Public License v3.0")
     print("")
     print("")
 
 
 if __name__ == "__main__":
     try:
-        show_logisek_banner()
+        show_banner()
         main()
     except KeyboardInterrupt:
         print("\n\n[!] Interrupted by user (Ctrl+C). Exiting...")

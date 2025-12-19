@@ -28,9 +28,30 @@ Comprehensive Azure Entra ID (Azure AD) user enumeration and security assessment
 
 ---
 
+### MFA Security Check
+
+Focused security assessment tool to identify Azure Entra ID users without Multi-Factor Authentication (MFA) enabled. Includes advanced features for shared mailbox detection and sign-in activity analysis.
+
+**Key Features:**
+- **MFA Detection** - Identifies users without strong authentication methods
+- **Last Sign-In Tracking** - Shows last login date/time and activity patterns
+- **Shared Mailbox Detection** - Automatically identifies and filters shared mailbox accounts
+- **Sign-In Capability Check** - Determines if accounts can actually authenticate
+- **Risk Assessment** - Categorizes users by risk level (HIGH/MEDIUM/LOW)
+- **Activity Analytics** - Sign-in statistics, department breakdowns, stale accounts
+- **Matrix View** - Compact table format for quick visual scanning
+- **Export Options** - CSV/JSON with comprehensive user details
+- **Stealth Mode** - Configurable delays and jitter to avoid detection
+
+| Version | Documentation | File |
+|---------|---------------|------|
+| PowerShell | [EntraMFACheck-PS1.md](EntraMFACheck-PS1.md) | `Invoke-EntraMFACheck.ps1` |
+
+---
+
 ## Quick Start
 
-### PowerShell Version
+### Enumerate-EntraUsers (PowerShell)
 
 **Requirements:** PowerShell 7+
 
@@ -50,7 +71,7 @@ Comprehensive Azure Entra ID (Azure AD) user enumeration and security assessment
 
 📖 **Full documentation:** [EntraRecon-PS1.md](EntraRecon-PS1.md)
 
-### Python Version
+### Enumerate-EntraUsers (Python)
 
 **Requirements:** Python 3.8+, `msal`, `requests`
 
@@ -64,6 +85,26 @@ python entra_recon.py
 
 📖 **Full documentation:** [EntraRecon-PY.md](EntraRecon-PY.md)
 
+### MFA Security Check (PowerShell)
+
+**Requirements:** PowerShell 7+, Microsoft.Graph modules
+
+```powershell
+# Scan for users without MFA
+.\Invoke-EntraMFACheck.ps1
+
+# Export results to CSV
+.\Invoke-EntraMFACheck.ps1 -ExportPath "no-mfa-users.csv"
+
+# Matrix view with all features
+.\Invoke-EntraMFACheck.ps1 -Matrix -IncludeDisabledUsers
+
+# Stealth mode
+.\Invoke-EntraMFACheck.ps1 -EnableStealth -QuietStealth
+```
+
+📖 **Full documentation:** [EntraMFACheck-PS1.md](EntraMFACheck-PS1.md)
+
 ---
 
 ## Documentation
@@ -72,10 +113,13 @@ python entra_recon.py
 |----------|-------------|
 | [EntraRecon-PS1.md](EntraRecon-PS1.md) | Full PowerShell script documentation including all parameters, features, and usage examples |
 | [EntraRecon-PY.md](EntraRecon-PY.md) | Full Python script documentation including authentication methods, stealth configuration, and examples |
+| [EntraMFACheck-PS1.md](EntraMFACheck-PS1.md) | MFA Security Check documentation including shared mailbox detection, sign-in tracking, and risk assessment |
 
 ---
 
 ## Feature Comparison
+
+### Enumerate-EntraUsers Versions
 
 Both versions provide the same core functionality:
 
@@ -99,6 +143,26 @@ Both versions provide the same core functionality:
 | Extended App ID Database | ❌ | ✅ |
 | Stealth Presets | ❌ | ✅ |
 
+### Toolkit Comparison
+
+| Feature | Enumerate-EntraUsers | MFA Security Check |
+|---------|---------------------|-------------------|
+| **Purpose** | Comprehensive user enumeration | Focused MFA security audit |
+| User Enumeration | 15+ methods | Standard method |
+| MFA Detection | Basic check | Advanced with method types |
+| Shared Mailbox Detection | ❌ | ✅ Automatic |
+| Last Sign-In Tracking | ✅ | ✅ With analytics |
+| Sign-In Capability Check | ❌ | ✅ |
+| Risk Level Assessment | Basic | Advanced (HIGH/MEDIUM/LOW) |
+| Activity Analytics | Limited | Detailed (stale/recent/never) |
+| Matrix View | ❌ | ✅ |
+| Department Analysis | ✅ | ✅ With statistics |
+| BloodHound Export | ✅ | ❌ |
+| HTML Report | ✅ | ❌ |
+| CSV/JSON Export | ✅ | ✅ Enhanced fields |
+| Stealth Mode | ✅ | ✅ |
+| **Best For** | Red team reconnaissance | MFA compliance audits |
+
 ---
 
 ## Installation
@@ -120,7 +184,21 @@ pip install azure-identity
 
 ### PowerShell Dependencies
 
-The script will automatically install the required `Microsoft.Graph.Users` module on first run.
+**Enumerate-EntraUsers:** The script will automatically install the required `Microsoft.Graph.Users` module on first run.
+
+**MFA Security Check:** Requires Microsoft Graph PowerShell SDK:
+
+```powershell
+Install-Module Microsoft.Graph -Scope CurrentUser
+```
+
+Or install individual modules:
+
+```powershell
+Install-Module Microsoft.Graph.Authentication -Scope CurrentUser
+Install-Module Microsoft.Graph.Users -Scope CurrentUser
+Install-Module Microsoft.Graph.Identity.SignIns -Scope CurrentUser
+```
 
 ---
 

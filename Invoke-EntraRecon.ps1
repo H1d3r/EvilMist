@@ -225,6 +225,27 @@ $script:SensitiveConnectors = @{
 # HELPER FUNCTIONS
 # ============================================================================
 
+# Banner
+function Show-Banner {
+    Write-Host ""
+    
+    $asciiArt = @"
+███████╗██╗   ██╗██╗██╗     ███╗   ███╗██╗███████╗████████╗
+██╔════╝██║   ██║██║██║     ████╗ ████║██║██╔════╝╚══██╔══╝
+█████╗  ██║   ██║██║██║     ██╔████╔██║██║███████╗   ██║   
+██╔══╝  ╚██╗ ██╔╝██║██║     ██║╚██╔╝██║██║╚════██║   ██║   
+███████╗ ╚████╔╝ ██║███████╗██║ ╚═╝ ██║██║███████║   ██║   
+╚══════╝  ╚═══╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═╝╚══════╝   ╚═╝   
+"@
+    
+    Write-Host $asciiArt -ForegroundColor Magenta
+    Write-Host "    Entra ID Reconnaissance - EvilMist Toolkit" -ForegroundColor Yellow
+    Write-Host "    https://logisek.com | info@logisek.com"
+    Write-Host "    GNU General Public License v3.0"
+    Write-Host ""
+    Write-Host ""
+}
+
 # ============================================================================
 # STEALTH & EVASION FUNCTIONS
 # ============================================================================
@@ -10591,57 +10612,10 @@ function Show-Menu {
 }
 
 # ============================================================================
-# BANNER FUNCTION
-# ============================================================================
-
-function Show-LogisekBanner {
-    Write-Host ""
-    
-    $asciiArt = @"
-                                                                      
-         _____   ______ _____ _______ _______ _     _
- |      |     | |  ____   |   |______ |______ |____/ 
- |_____ |_____| |_____| __|__ ______| |______ |    \_
-                                                                  
-                                                                      
-"@
-    
-    # Try to use colors if available (PowerShell supports ANSI by default on modern systems)
-    try {
-        # Check if ANSI escape sequences are supported
-        if ($Host.UI.SupportsVirtualTerminal) {
-            # ANSI color codes: Magenta for ASCII art, Yellow for title
-            $magenta = "`e[35m"
-            $yellow = "`e[33m"
-            $reset = "`e[0m"
-            
-            Write-Host "${magenta}${asciiArt}${reset}"
-            Write-Host "${yellow}  EvilMist - EntraID Reconnaissance v1.0${reset}"
-        }
-        else {
-            # Fallback to PowerShell colors
-            Write-Host $asciiArt -ForegroundColor Magenta
-            Write-Host "  EvilMist - EntraID Reconnaissance v1.0" -ForegroundColor Yellow
-        }
-    }
-    catch {
-        # Fallback without colors
-        Write-Host $asciiArt
-        Write-Host "  EvilMist - EntraID Reconnaissance v1.0"
-    }
-    
-    Write-Host "  GNU General Public License v3.0"
-    Write-Host "  https://logisek.com"
-    Write-Host "  info@logisek.com"
-    Write-Host ""
-    Write-Host ""
-}
-
-# ============================================================================
 # MAIN SCRIPT
 # ============================================================================
 
-Show-LogisekBanner
+Show-Banner
 
 Install-GraphModule
 Import-Module Microsoft.Graph.Users -ErrorAction Stop
