@@ -217,9 +217,28 @@ python entra_recon.py
 
 📖 **Full documentation:** [EntraRoleCheck-PS1.md](EntraRoleCheck-PS1.md)
 
-### Privileged Role Check (PowerShell)
+### Service Principal Security Check (PowerShell)
 
-Comprehensive security assessment tool to identify and analyze Azure Entra ID users with privileged directory roles including Global Administrators, Privileged Role Administrators, and other high-privilege roles. Essential for privileged access governance and role assignment auditing.
+**Requirements:** PowerShell 7+, Microsoft.Graph modules
+
+```powershell
+# Check all service principals and analyze security posture
+.\Invoke-EntraServicePrincipalCheck.ps1
+
+# Export results to CSV
+.\Invoke-EntraServicePrincipalCheck.ps1 -ExportPath "service-principals.csv"
+
+# Show only service principals with expired credentials in matrix view
+.\Invoke-EntraServicePrincipalCheck.ps1 -Matrix -OnlyExpiredCredentials
+
+# Show only high-permission service principals
+.\Invoke-EntraServicePrincipalCheck.ps1 -OnlyHighPermission -ExportPath "high-perm-sp.csv"
+
+# Stealth mode scan
+.\Invoke-EntraServicePrincipalCheck.ps1 -EnableStealth -QuietStealth
+```
+
+📖 **Full documentation:** [EntraServicePrincipalCheck-PS1.md](EntraServicePrincipalCheck-PS1.md)
 
 **Key Features:**
 - **Comprehensive Role Coverage** - Enumerates all directory roles including CRITICAL, HIGH, MEDIUM, and LOW risk roles
@@ -250,6 +269,7 @@ Comprehensive security assessment tool to identify and analyze Azure Entra ID us
 | [EntraGuestCheck-PS1.md](EntraGuestCheck-PS1.md) | Guest Account Enumeration documentation including guest domain extraction, invite tracking, and security analysis |
 | [EntraAppAccess-PS1.md](EntraAppAccess-PS1.md) | PowerShell & Graph CLI Access Check documentation including app access tracking, assignment dates, and privileged access analysis |
 | [EntraRoleCheck-PS1.md](EntraRoleCheck-PS1.md) | Privileged Role Check documentation including role enumeration, PIM assignment tracking, risk assessment, and security analysis |
+| [EntraServicePrincipalCheck-PS1.md](EntraServicePrincipalCheck-PS1.md) | Service Principal Security Check documentation including credential enumeration, expiration tracking, permission analysis, owner security, and risk assessment |
 
 ---
 
@@ -281,29 +301,33 @@ Both versions provide the same core functionality:
 
 ### Toolkit Comparison
 
-| Feature | Enumerate-EntraUsers | MFA Security Check | Guest Account Enumeration | Critical Admin Access Check | Privileged Role Check |
-|---------|---------------------|-------------------|---------------------------|----------------------------|----------------------|
-| **Purpose** | Comprehensive user enumeration | Focused MFA security audit | Guest access governance | Critical administrative access audit | Privileged role assignment audit |
-| User Enumeration | 15+ methods | Standard method | Guest-focused | App assignment-based | Role assignment-based |
-| MFA Detection | Basic check | Advanced with method types | Advanced with method types | Advanced with method types | Advanced with method types |
-| Shared Mailbox Detection | ❌ | ✅ Automatic | ❌ (N/A for guests) | ❌ (N/A for app access) | ❌ (N/A for roles) |
-| Guest Domain Extraction | ❌ | ❌ | ✅ Automatic | ❌ | ❌ |
-| Invite Status Tracking | ❌ | ❌ | ✅ With acceptance dates | ❌ | ❌ |
-| App Access Tracking | ❌ | ❌ | ❌ | ✅ Multi-app coverage | ❌ |
-| Role Assignment Tracking | ❌ | ❌ | ❌ | ❌ | ✅ All directory roles |
-| PIM Assignment Tracking | ❌ | ❌ | ❌ | ❌ | ✅ Eligible & Active |
-| Assignment Date Tracking | ❌ | ❌ | ✅ Invite dates | ✅ Assignment dates | ✅ Assignment dates & duration |
-| Last Sign-In Tracking | ✅ | ✅ With analytics | ✅ With analytics | ✅ With analytics | ✅ With analytics |
-| Sign-In Capability Check | ❌ | ✅ | ✅ | ❌ | ❌ |
-| Risk Level Assessment | Basic | Advanced (HIGH/MEDIUM/LOW) | Advanced (HIGH/MEDIUM/LOW) | Advanced (HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) |
-| Activity Analytics | Limited | Detailed (stale/recent/never) | Detailed (stale/recent/never) | Detailed (stale/recent/never) | Detailed (stale/recent/never) |
-| Matrix View | ❌ | ✅ | ✅ | ✅ | ✅ |
-| Department Analysis | ✅ | ✅ With statistics | ✅ With statistics | ✅ With statistics | ✅ With statistics |
-| BloodHound Export | ✅ | ❌ | ❌ | ❌ | ❌ |
-| HTML Report | ✅ | ❌ | ❌ | ❌ | ❌ |
-| CSV/JSON Export | ✅ | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields |
-| Stealth Mode | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Best For** | Red team reconnaissance | MFA compliance audits | External user security | Privileged access audit | Privileged role governance |
+| Feature | Enumerate-EntraUsers | MFA Security Check | Guest Account Enumeration | Critical Admin Access Check | Privileged Role Check | Service Principal Check |
+|---------|---------------------|-------------------|---------------------------|----------------------------|----------------------|------------------------|
+| **Purpose** | Comprehensive user enumeration | Focused MFA security audit | Guest access governance | Critical administrative access audit | Privileged role assignment audit | Service account security audit |
+| User Enumeration | 15+ methods | Standard method | Guest-focused | App assignment-based | Role assignment-based | Service principal-focused |
+| MFA Detection | Basic check | Advanced with method types | Advanced with method types | Advanced with method types | Advanced with method types | Owner MFA check |
+| Shared Mailbox Detection | ❌ | ✅ Automatic | ❌ (N/A for guests) | ❌ (N/A for app access) | ❌ (N/A for roles) | ❌ (N/A for SPs) |
+| Guest Domain Extraction | ❌ | ❌ | ✅ Automatic | ❌ | ❌ | ❌ |
+| Invite Status Tracking | ❌ | ❌ | ✅ With acceptance dates | ❌ | ❌ | ❌ |
+| App Access Tracking | ❌ | ❌ | ❌ | ✅ Multi-app coverage | ❌ | ❌ |
+| Role Assignment Tracking | ❌ | ❌ | ❌ | ❌ | ✅ All directory roles | ❌ |
+| PIM Assignment Tracking | ❌ | ❌ | ❌ | ❌ | ✅ Eligible & Active | ❌ |
+| Credential Enumeration | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Secrets & certificates |
+| Credential Expiration Tracking | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Expired & expiring soon |
+| Permission Analysis | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ High-risk & critical |
+| Owner Analysis | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ With MFA status |
+| Assignment Date Tracking | ❌ | ❌ | ✅ Invite dates | ✅ Assignment dates | ✅ Assignment dates & duration | ❌ |
+| Last Sign-In Tracking | ✅ | ✅ With analytics | ✅ With analytics | ✅ With analytics | ✅ With analytics | Limited (SP activity) |
+| Sign-In Capability Check | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Risk Level Assessment | Basic | Advanced (HIGH/MEDIUM/LOW) | Advanced (HIGH/MEDIUM/LOW) | Advanced (HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) |
+| Activity Analytics | Limited | Detailed (stale/recent/never) | Detailed (stale/recent/never) | Detailed (stale/recent/never) | Detailed (stale/recent/never) | Basic (age-based) |
+| Matrix View | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Department Analysis | ✅ | ✅ With statistics | ✅ With statistics | ✅ With statistics | ✅ With statistics | ❌ |
+| BloodHound Export | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| HTML Report | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| CSV/JSON Export | ✅ | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields |
+| Stealth Mode | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Best For** | Red team reconnaissance | MFA compliance audits | External user security | Privileged access audit | Privileged role governance | Service account security |
 
 ---
 
@@ -328,7 +352,7 @@ pip install azure-identity
 
 **Enumerate-EntraUsers:** The script will automatically install the required `Microsoft.Graph.Users` module on first run.
 
-**MFA Security Check, Guest Account Enumeration, Critical Admin Access Check, and Privileged Role Check:** Require Microsoft Graph PowerShell SDK:
+**MFA Security Check, Guest Account Enumeration, Critical Admin Access Check, Privileged Role Check, and Service Principal Check:** Require Microsoft Graph PowerShell SDK:
 
 ```powershell
 Install-Module Microsoft.Graph -Scope CurrentUser
