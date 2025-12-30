@@ -128,9 +128,6 @@ Comprehensive security assessment tool to identify Azure Entra ID users with acc
 # Using dispatcher (recommended)
 .\Invoke-EvilMist.ps1 -Script EntraRecon
 
-# Or directly from subfolder
-.\scripts\powershell\Invoke-EntraRecon.ps1
-
 # With Azure CLI token
 .\Invoke-EvilMist.ps1 -Script EntraRecon -UseAzCliToken
 
@@ -186,16 +183,16 @@ python scripts\python\entra_recon.py
 
 ```powershell
 # Enumerate all guest accounts
-.\scripts\powershell\Invoke-EntraGuestCheck.ps1
+.\Invoke-EvilMist.ps1 -Script EntraGuestCheck
 
 # Export results to CSV
-.\scripts\powershell\Invoke-EntraGuestCheck.ps1 -ExportPath "guest-accounts.csv"
+.\Invoke-EvilMist.ps1 -Script EntraGuestCheck -ExportPath "guest-accounts.csv"
 
 # Show only guests without MFA in matrix view
-.\scripts\powershell\Invoke-EntraGuestCheck.ps1 -Matrix -OnlyNoMFA
+.\Invoke-EvilMist.ps1 -Script EntraGuestCheck -Matrix -OnlyNoMFA
 
 # Include disabled guests with stealth mode
-.\scripts\powershell\Invoke-EntraGuestCheck.ps1 -IncludeDisabledGuests -EnableStealth -QuietStealth
+.\Invoke-EvilMist.ps1 -Script EntraGuestCheck -IncludeDisabledGuests -EnableStealth -QuietStealth
 ```
 
 📖 **Full documentation:** [EntraGuestCheck-PS1.md](docs/EntraGuestCheck-PS1.md)
@@ -206,16 +203,16 @@ python scripts\python\entra_recon.py
 
 ```powershell
 # Check users with critical administrative access (10 apps)
-.\scripts\powershell\Invoke-EntraAppAccess.ps1
+.\Invoke-EvilMist.ps1 -Script EntraAppAccess
 
 # Export results to CSV
-.\scripts\powershell\Invoke-EntraAppAccess.ps1 -ExportPath "app-access.csv"
+.\Invoke-EvilMist.ps1 -Script EntraAppAccess -ExportPath "app-access.csv"
 
 # Show only users without MFA in matrix view
-.\scripts\powershell\Invoke-EntraAppAccess.ps1 -Matrix -OnlyNoMFA
+.\Invoke-EvilMist.ps1 -Script EntraAppAccess -Matrix -OnlyNoMFA
 
 # Stealth mode scan
-.\scripts\powershell\Invoke-EntraAppAccess.ps1 -EnableStealth -QuietStealth
+.\Invoke-EvilMist.ps1 -Script EntraAppAccess -EnableStealth -QuietStealth
 ```
 
 📖 **Full documentation:** [EntraAppAccess-PS1.md](docs/EntraAppAccess-PS1.md)
@@ -226,19 +223,19 @@ python scripts\python\entra_recon.py
 
 ```powershell
 # Check users with privileged directory roles
-.\scripts\powershell\Invoke-EntraRoleCheck.ps1
+.\Invoke-EvilMist.ps1 -Script EntraRoleCheck
 
 # Export results to CSV
-.\scripts\powershell\Invoke-EntraRoleCheck.ps1 -ExportPath "privileged-roles.csv"
+.\Invoke-EvilMist.ps1 -Script EntraRoleCheck -ExportPath "privileged-roles.csv"
 
 # Show only users without MFA in matrix view
-.\scripts\powershell\Invoke-EntraRoleCheck.ps1 -Matrix -OnlyNoMFA
+.\Invoke-EvilMist.ps1 -Script EntraRoleCheck -Matrix -OnlyNoMFA
 
 # Show only permanent (non-PIM) assignments
-.\scripts\powershell\Invoke-EntraRoleCheck.ps1 -OnlyPermanent -ExportPath "permanent-admins.csv"
+.\Invoke-EvilMist.ps1 -Script EntraRoleCheck -OnlyPermanent -ExportPath "permanent-admins.csv"
 
 # Stealth mode scan
-.\scripts\powershell\Invoke-EntraRoleCheck.ps1 -EnableStealth -QuietStealth
+.\Invoke-EvilMist.ps1 -Script EntraRoleCheck -EnableStealth -QuietStealth
 ```
 
 📖 **Full documentation:** [EntraRoleCheck-PS1.md](docs/EntraRoleCheck-PS1.md)
@@ -249,19 +246,19 @@ python scripts\python\entra_recon.py
 
 ```powershell
 # Check all service principals and analyze security posture
-.\scripts\powershell\Invoke-EntraServicePrincipalCheck.ps1
+.\Invoke-EvilMist.ps1 -Script EntraServicePrincipalCheck
 
 # Export results to CSV
-.\scripts\powershell\Invoke-EntraServicePrincipalCheck.ps1 -ExportPath "service-principals.csv"
+.\Invoke-EvilMist.ps1 -Script EntraServicePrincipalCheck -ExportPath "service-principals.csv"
 
 # Show only service principals with expired credentials in matrix view
-.\scripts\powershell\Invoke-EntraServicePrincipalCheck.ps1 -Matrix -OnlyExpiredCredentials
+.\Invoke-EvilMist.ps1 -Script EntraServicePrincipalCheck -Matrix -OnlyExpiredCredentials
 
 # Show only high-permission service principals
-.\scripts\powershell\Invoke-EntraServicePrincipalCheck.ps1 -OnlyHighPermission -ExportPath "high-perm-sp.csv"
+.\Invoke-EvilMist.ps1 -Script EntraServicePrincipalCheck -OnlyHighPermission -ExportPath "high-perm-sp.csv"
 
 # Stealth mode scan
-.\scripts\powershell\Invoke-EntraServicePrincipalCheck.ps1 -EnableStealth -QuietStealth
+.\Invoke-EvilMist.ps1 -Script EntraServicePrincipalCheck -EnableStealth -QuietStealth
 ```
 
 📖 **Full documentation:** [EntraServicePrincipalCheck-PS1.md](docs/EntraServicePrincipalCheck-PS1.md)
@@ -291,19 +288,19 @@ python scripts\python\entra_recon.py
 
 ```powershell
 # Analyze all Conditional Access policies
-.\scripts\powershell\Invoke-EntraConditionalAccessCheck.ps1
+.\Invoke-EvilMist.ps1 -Script EntraConditionalAccessCheck
 
 # Export results to CSV
-.\scripts\powershell\Invoke-EntraConditionalAccessCheck.ps1 -ExportPath "ca-policies.csv"
+.\Invoke-EvilMist.ps1 -Script EntraConditionalAccessCheck -ExportPath "ca-policies.csv"
 
 # Show only policies with exclusions in matrix view
-.\scripts\powershell\Invoke-EntraConditionalAccessCheck.ps1 -Matrix -OnlyWithExclusions
+.\Invoke-EvilMist.ps1 -Script EntraConditionalAccessCheck -Matrix -OnlyWithExclusions
 
 # Show only policies without MFA enforcement
-.\scripts\powershell\Invoke-EntraConditionalAccessCheck.ps1 -OnlyMFAgaps -ExportPath "mfa-gaps.csv"
+.\Invoke-EvilMist.ps1 -Script EntraConditionalAccessCheck -OnlyMFAgaps -ExportPath "mfa-gaps.csv"
 
 # Stealth mode scan
-.\scripts\powershell\Invoke-EntraConditionalAccessCheck.ps1 -EnableStealth -QuietStealth
+.\Invoke-EvilMist.ps1 -Script EntraConditionalAccessCheck -EnableStealth -QuietStealth
 ```
 
 📖 **Full documentation:** [EntraConditionalAccessCheck-PS1.md](docs/EntraConditionalAccessCheck-PS1.md)
@@ -314,19 +311,19 @@ python scripts\python\entra_recon.py
 
 ```powershell
 # Analyze all Administrative Units and scoped role assignments
-.\scripts\powershell\Invoke-EntraAdminUnitCheck.ps1
+.\Invoke-EvilMist.ps1 -Script EntraAdminUnitCheck
 
 # Export results to CSV
-.\scripts\powershell\Invoke-EntraAdminUnitCheck.ps1 -ExportPath "admin-units.csv"
+.\Invoke-EvilMist.ps1 -Script EntraAdminUnitCheck -ExportPath "admin-units.csv"
 
 # Show only scoped administrators without MFA in matrix view
-.\scripts\powershell\Invoke-EntraAdminUnitCheck.ps1 -Matrix -OnlyNoMFA
+.\Invoke-EvilMist.ps1 -Script EntraAdminUnitCheck -Matrix -OnlyNoMFA
 
 # Include disabled accounts
-.\scripts\powershell\Invoke-EntraAdminUnitCheck.ps1 -IncludeDisabledUsers -ExportPath "all-admins.csv"
+.\Invoke-EvilMist.ps1 -Script EntraAdminUnitCheck -IncludeDisabledUsers -ExportPath "all-admins.csv"
 
 # Stealth mode scan
-.\scripts\powershell\Invoke-EntraAdminUnitCheck.ps1 -EnableStealth -QuietStealth
+.\Invoke-EvilMist.ps1 -Script EntraAdminUnitCheck -EnableStealth -QuietStealth
 ```
 
 📖 **Full documentation:** [EntraAdminUnitCheck-PS1.md](docs/EntraAdminUnitCheck-PS1.md)
@@ -356,16 +353,16 @@ python scripts\python\entra_recon.py
 
 ```powershell
 # Identify stale accounts and account hygiene issues
-.\scripts\powershell\Invoke-EntraStaleAccountCheck.ps1
+.\Invoke-EvilMist.ps1 -Script EntraStaleAccountCheck
 
 # Export results to CSV
-.\scripts\powershell\Invoke-EntraStaleAccountCheck.ps1 -ExportPath "stale-accounts.csv"
+.\Invoke-EvilMist.ps1 -Script EntraStaleAccountCheck -ExportPath "stale-accounts.csv"
 
 # Include disabled accounts in matrix view
-.\scripts\powershell\Invoke-EntraStaleAccountCheck.ps1 -IncludeDisabledUsers -Matrix
+.\Invoke-EvilMist.ps1 -Script EntraStaleAccountCheck -IncludeDisabledUsers -Matrix
 
 # Stealth mode scan
-.\scripts\powershell\Invoke-EntraStaleAccountCheck.ps1 -EnableStealth -QuietStealth
+.\Invoke-EvilMist.ps1 -Script EntraStaleAccountCheck -EnableStealth -QuietStealth
 ```
 
 📖 **Full documentation:** [EntraStaleAccountCheck-PS1.md](docs/EntraStaleAccountCheck-PS1.md)
@@ -395,22 +392,22 @@ python scripts\python\entra_recon.py
 
 ```powershell
 # Analyze all registered devices
-.\scripts\powershell\Invoke-EntraDeviceCheck.ps1
+.\Invoke-EvilMist.ps1 -Script EntraDeviceCheck
 
 # Export results to CSV
-.\scripts\powershell\Invoke-EntraDeviceCheck.ps1 -ExportPath "devices.csv"
+.\Invoke-EvilMist.ps1 -Script EntraDeviceCheck -ExportPath "devices.csv"
 
 # Show only non-compliant devices in matrix view
-.\scripts\powershell\Invoke-EntraDeviceCheck.ps1 -Matrix -OnlyNonCompliant
+.\Invoke-EvilMist.ps1 -Script EntraDeviceCheck -Matrix -OnlyNonCompliant
 
 # Show only BYOD devices
-.\scripts\powershell\Invoke-EntraDeviceCheck.ps1 -OnlyBYOD -ExportPath "byod-devices.csv"
+.\Invoke-EvilMist.ps1 -Script EntraDeviceCheck -OnlyBYOD -ExportPath "byod-devices.csv"
 
 # Show only devices with stale sign-ins
-.\scripts\powershell\Invoke-EntraDeviceCheck.ps1 -OnlyStale -ExportPath "stale-devices.csv"
+.\Invoke-EvilMist.ps1 -Script EntraDeviceCheck -OnlyStale -ExportPath "stale-devices.csv"
 
 # Stealth mode scan
-.\scripts\powershell\Invoke-EntraDeviceCheck.ps1 -EnableStealth -QuietStealth
+.\Invoke-EvilMist.ps1 -Script EntraDeviceCheck -EnableStealth -QuietStealth
 ```
 
 📖 **Full documentation:** [EntraDeviceCheck-PS1.md](docs/EntraDeviceCheck-PS1.md)
@@ -442,19 +439,19 @@ python scripts\python\entra_recon.py
 
 ```powershell
 # Check users with SSPR enabled
-.\scripts\powershell\Invoke-EntraSSPRCheck.ps1
+.\Invoke-EvilMist.ps1 -Script EntraSSPRCheck
 
 # Export results to CSV
-.\scripts\powershell\Invoke-EntraSSPRCheck.ps1 -ExportPath "sspr-users.csv"
+.\Invoke-EvilMist.ps1 -Script EntraSSPRCheck -ExportPath "sspr-users.csv"
 
 # Show only users without backup methods in matrix view
-.\scripts\powershell\Invoke-EntraSSPRCheck.ps1 -Matrix -OnlyNoBackup
+.\Invoke-EvilMist.ps1 -Script EntraSSPRCheck -Matrix -OnlyNoBackup
 
 # Include disabled users
-.\scripts\powershell\Invoke-EntraSSPRCheck.ps1 -IncludeDisabledUsers -ExportPath "all-sspr-users.csv"
+.\Invoke-EvilMist.ps1 -Script EntraSSPRCheck -IncludeDisabledUsers -ExportPath "all-sspr-users.csv"
 
 # Stealth mode scan
-.\scripts\powershell\Invoke-EntraSSPRCheck.ps1 -EnableStealth -QuietStealth
+.\Invoke-EvilMist.ps1 -Script EntraSSPRCheck -EnableStealth -QuietStealth
 ```
 
 📖 **Full documentation:** [EntraSSPRCheck-PS1.md](docs/EntraSSPRCheck-PS1.md)
@@ -485,19 +482,19 @@ python scripts\python\entra_recon.py
 
 ```powershell
 # Analyze all password policies
-.\scripts\powershell\Invoke-EntraPasswordPolicyCheck.ps1
+.\Invoke-EvilMist.ps1 -Script EntraPasswordPolicyCheck
 
 # Export results to CSV
-.\scripts\powershell\Invoke-EntraPasswordPolicyCheck.ps1 -ExportPath "password-policies.csv"
+.\Invoke-EvilMist.ps1 -Script EntraPasswordPolicyCheck -ExportPath "password-policies.csv"
 
 # Show only users with weak password policies in matrix view
-.\scripts\powershell\Invoke-EntraPasswordPolicyCheck.ps1 -Matrix -OnlyWeakPolicies
+.\Invoke-EvilMist.ps1 -Script EntraPasswordPolicyCheck -Matrix -OnlyWeakPolicies
 
 # Show only users with password never expires
-.\scripts\powershell\Invoke-EntraPasswordPolicyCheck.ps1 -OnlyNeverExpires -ExportPath "never-expires.csv"
+.\Invoke-EvilMist.ps1 -Script EntraPasswordPolicyCheck -OnlyNeverExpires -ExportPath "never-expires.csv"
 
 # Stealth mode scan
-.\scripts\powershell\Invoke-EntraPasswordPolicyCheck.ps1 -EnableStealth -QuietStealth
+.\Invoke-EvilMist.ps1 -Script EntraPasswordPolicyCheck -EnableStealth -QuietStealth
 ```
 
 📖 **Full documentation:** [EntraPasswordPolicyCheck-PS1.md](docs/EntraPasswordPolicyCheck-PS1.md)
@@ -527,19 +524,19 @@ python scripts\python\entra_recon.py
 
 ```powershell
 # Analyze all legacy authentication usage
-.\scripts\powershell\Invoke-EntraLegacyAuthCheck.ps1
+.\Invoke-EvilMist.ps1 -Script EntraLegacyAuthCheck
 
 # Export results to CSV
-.\scripts\powershell\Invoke-EntraLegacyAuthCheck.ps1 -ExportPath "legacy-auth.csv"
+.\Invoke-EvilMist.ps1 -Script EntraLegacyAuthCheck -ExportPath "legacy-auth.csv"
 
 # Show only recent usage (last 30 days) in matrix view
-.\scripts\powershell\Invoke-EntraLegacyAuthCheck.ps1 -Matrix -OnlyRecent
+.\Invoke-EvilMist.ps1 -Script EntraLegacyAuthCheck -Matrix -OnlyRecent
 
 # Include disabled accounts
-.\scripts\powershell\Invoke-EntraLegacyAuthCheck.ps1 -IncludeDisabledUsers -ExportPath "all-legacy-users.csv"
+.\Invoke-EvilMist.ps1 -Script EntraLegacyAuthCheck -IncludeDisabledUsers -ExportPath "all-legacy-users.csv"
 
 # Stealth mode scan
-.\scripts\powershell\Invoke-EntraLegacyAuthCheck.ps1 -EnableStealth -QuietStealth
+.\Invoke-EvilMist.ps1 -Script EntraLegacyAuthCheck -EnableStealth -QuietStealth
 ```
 
 📖 **Full documentation:** [EntraLegacyAuthCheck-PS1.md](docs/EntraLegacyAuthCheck-PS1.md)
@@ -569,19 +566,19 @@ python scripts\python\entra_recon.py
 
 ```powershell
 # Analyze all license SKUs and user assignments
-.\scripts\powershell\Invoke-EntraLicenseCheck.ps1
+.\Invoke-EvilMist.ps1 -Script EntraLicenseCheck
 
 # Export results to CSV
-.\scripts\powershell\Invoke-EntraLicenseCheck.ps1 -ExportPath "licenses.csv"
+.\Invoke-EvilMist.ps1 -Script EntraLicenseCheck -ExportPath "licenses.csv"
 
 # Show only users with privileged licenses (E5, P2) in matrix view
-.\scripts\powershell\Invoke-EntraLicenseCheck.ps1 -Matrix -OnlyPrivilegedLicenses
+.\Invoke-EvilMist.ps1 -Script EntraLicenseCheck -Matrix -OnlyPrivilegedLicenses
 
 # Show only unused license assignments
-.\scripts\powershell\Invoke-EntraLicenseCheck.ps1 -OnlyUnusedLicenses -ExportPath "unused-licenses.csv"
+.\Invoke-EvilMist.ps1 -Script EntraLicenseCheck -OnlyUnusedLicenses -ExportPath "unused-licenses.csv"
 
 # Stealth mode scan
-.\scripts\powershell\Invoke-EntraLicenseCheck.ps1 -EnableStealth -QuietStealth
+.\Invoke-EvilMist.ps1 -Script EntraLicenseCheck -EnableStealth -QuietStealth
 ```
 
 📖 **Full documentation:** [EntraLicenseCheck-PS1.md](docs/EntraLicenseCheck-PS1.md)
@@ -610,19 +607,19 @@ python scripts\python\entra_recon.py
 
 ```powershell
 # Check directory sync status for all users
-.\scripts\powershell\Invoke-EntraDirectorySyncCheck.ps1
+.\Invoke-EvilMist.ps1 -Script EntraDirectorySyncCheck
 
 # Export results to CSV
-.\scripts\powershell\Invoke-EntraDirectorySyncCheck.ps1 -ExportPath "sync-status.csv"
+.\Invoke-EvilMist.ps1 -Script EntraDirectorySyncCheck -ExportPath "sync-status.csv"
 
 # Show only users with sync errors in matrix view
-.\scripts\powershell\Invoke-EntraDirectorySyncCheck.ps1 -Matrix -OnlySyncErrors
+.\Invoke-EvilMist.ps1 -Script EntraDirectorySyncCheck -Matrix -OnlySyncErrors
 
 # Show only users with stale sync (>7 days)
-.\scripts\powershell\Invoke-EntraDirectorySyncCheck.ps1 -OnlyStaleSync -ExportPath "stale-sync.csv"
+.\Invoke-EvilMist.ps1 -Script EntraDirectorySyncCheck -OnlyStaleSync -ExportPath "stale-sync.csv"
 
 # Stealth mode scan
-.\scripts\powershell\Invoke-EntraDirectorySyncCheck.ps1 -EnableStealth -QuietStealth
+.\Invoke-EvilMist.ps1 -Script EntraDirectorySyncCheck -EnableStealth -QuietStealth
 ```
 
 📖 **Full documentation:** [EntraDirectorySyncCheck-PS1.md](docs/EntraDirectorySyncCheck-PS1.md)
