@@ -163,7 +163,7 @@ Install-Module Microsoft.Graph.Authentication -Scope CurrentUser
       "AssignmentId": "/subscriptions/.../providers/Microsoft.Authorization/roleAssignments/...",
       "AssignmentName": "...",
       "TenantId": "00000000-0000-0000-0000-000000000000",
-      "TenantName": "Contoso",
+      "TenantName": "example",
       "SubscriptionId": "00000000-0000-0000-0000-000000000000",
       "SubscriptionName": "Production",
       "Scope": "/subscriptions/...",
@@ -173,14 +173,14 @@ Install-Module Microsoft.Graph.Authentication -Scope CurrentUser
       "PrincipalId": "00000000-0000-0000-0000-000000000000",
       "PrincipalType": "User",
       "PrincipalDisplayName": "John Doe",
-      "PrincipalSignInName": "john.doe@contoso.com",
+      "PrincipalSignInName": "john.doe@example.com",
       "Condition": null,
       "ConditionVersion": null,
       "CanDelegate": false,
       "CreatedOn": "2024-01-15T10:30:00Z",
       "UpdatedOn": "2024-01-15T10:30:00Z",
-      "CreatedBy": "admin@contoso.com",
-      "UpdatedBy": "admin@contoso.com",
+      "CreatedBy": "admin@example.com",
+      "UpdatedBy": "admin@example.com",
       "ExportTimestamp": "2025-01-03T12:00:00Z"
     }
   ]
@@ -251,10 +251,10 @@ MATRIX VIEW - AZURE RBAC ROLE ASSIGNMENTS
 
 Risk   Role                     Principal Type   Principal              Subscription              Scope Type   Tenant
 ----   ----                     --------------   ---------              ------------              ----------   ------
-CRITICAL Owner                  User            John Doe               Production                Subscription Contoso
-HIGH     Contributor            ServicePrincipal App-Service           Development               ResourceGroup Contoso
-MEDIUM   Storage Blob Data...   User            Jane Smith             Production                Resource     Contoso
-LOW      Reader                 Group           Security-Readers       All-Subscriptions         Subscription Contoso
+CRITICAL Owner                  User            John Doe               Production                Subscription example
+HIGH     Contributor            ServicePrincipal App-Service           Development               ResourceGroup example
+MEDIUM   Storage Blob Data...   User            Jane Smith             Production                Resource     example
+LOW      Reader                 Group           Security-Readers       All-Subscriptions         Subscription example
 
 ================================================================================
 
@@ -296,9 +296,9 @@ MATRIX VIEW - DRIFT DETECTION RESULTS
 
 Risk     Type              Tenant    Subscription   Role         Principal Type  Principal        Scope Type  Issue
 ----     ----              ------    ------------   ----         --------------  ---------        ----------  -----
-CRITICAL NEW_ASSIGNMENT    Contoso   Production     Owner        User            attacker@...     Subscription New role assignment...
-HIGH     NEW_ASSIGNMENT    Contoso   Development    Contributor  ServicePrinc... Unknown-App      ResourceGr... New role assignment...
-MEDIUM   REMOVED_ASSIGN... Contoso   Production     Reader       Group           Old-Readers      Subscription Role assignment rem...
+CRITICAL NEW_ASSIGNMENT    example   Production     Owner        User            attacker@...     Subscription New role assignment...
+HIGH     NEW_ASSIGNMENT    example   Development    Contributor  ServicePrinc... Unknown-App      ResourceGr... New role assignment...
+MEDIUM   REMOVED_ASSIGN... example   Production     Reader       Group           Old-Readers      Subscription Role assignment rem...
 
 ================================================================================
 
