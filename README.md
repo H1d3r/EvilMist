@@ -118,7 +118,7 @@ Comprehensive security assessment tool to identify Azure Entra ID users with acc
 .\Invoke-EvilMist.ps1 -Script EntraMFACheck -Matrix -OnlyNoMFA
 ```
 
-**Available scripts:** EntraRecon, EntraMFACheck, EntraGuestCheck, EntraAppAccess, EntraRoleCheck, EntraServicePrincipalCheck, EntraConditionalAccessCheck, EntraAdminUnitCheck, EntraStaleAccountCheck, EntraDeviceCheck, EntraSSPRCheck, EntraPasswordPolicyCheck, EntraLegacyAuthCheck, EntraLicenseCheck, EntraDirectorySyncCheck, EntraPowerPlatformCheck, EntraGroupCheck, EntraApplicationCheck, EntraAttackPathCheck
+**Available scripts:** EntraRecon, EntraMFACheck, EntraGuestCheck, EntraAppAccess, EntraRoleCheck, EntraServicePrincipalCheck, EntraConditionalAccessCheck, EntraAdminUnitCheck, EntraStaleAccountCheck, EntraDeviceCheck, EntraSSPRCheck, EntraPasswordPolicyCheck, EntraLegacyAuthCheck, EntraLicenseCheck, EntraDirectorySyncCheck, EntraPowerPlatformCheck, EntraGroupCheck, EntraApplicationCheck, EntraAttackPathCheck, EntraAzureRBACCheck
 
 ### Enumerate-EntraUsers (PowerShell)
 
@@ -785,6 +785,77 @@ python scripts\python\entra_recon.py
 
 ---
 
+### Azure RBAC Role Assignment Audit & Drift Detection (PowerShell)
+
+**Requirements:** PowerShell 7+, Az.Accounts, Az.Resources, Microsoft.Graph.Authentication modules
+
+```powershell
+# Export all Azure RBAC role assignments across ALL tenants and subscriptions to baseline JSON
+.\Invoke-EvilMist.ps1 -Script EntraAzureRBACCheck -Mode Export
+
+# Export to specific file
+.\Invoke-EvilMist.ps1 -Script EntraAzureRBACCheck -Mode Export -ExportPath "rbac-baseline.json"
+
+# Skip tenants with MFA/Conditional Access issues (common in multi-tenant scenarios)
+.\Invoke-EvilMist.ps1 -Script EntraAzureRBACCheck -Mode Export -SkipFailedTenants
+
+# Show all users with their Azure permissions in matrix format
+.\Invoke-EvilMist.ps1 -Script EntraAzureRBACCheck -Mode Export -SkipFailedTenants -ShowAllUsersPermissions
+
+# Expand group memberships to show all users who have Azure access via groups
+.\Invoke-EvilMist.ps1 -Script EntraAzureRBACCheck -Mode Export -SkipFailedTenants -ExpandGroupMembers
+
+# Combined: Show all users including those with access via groups
+.\Invoke-EvilMist.ps1 -Script EntraAzureRBACCheck -Mode Export -SkipFailedTenants -ExpandGroupMembers -ShowAllUsersPermissions
+
+# Detect drift against baseline across all tenants
+.\Invoke-EvilMist.ps1 -Script EntraAzureRBACCheck -Mode DriftDetect -BaselinePath "rbac-baseline.json"
+
+# Detect drift with matrix view and export report
+.\Invoke-EvilMist.ps1 -Script EntraAzureRBACCheck -Mode DriftDetect -BaselinePath "rbac-baseline.json" -Matrix -ExportPath "drift-report.json"
+
+# Export specific tenant only
+.\Invoke-EvilMist.ps1 -Script EntraAzureRBACCheck -Mode Export -TenantId "tenant-id-123"
+
+# Export specific subscription with Azure CLI auth
+.\Invoke-EvilMist.ps1 -Script EntraAzureRBACCheck -Mode Export -SubscriptionId "sub-123" -UseAzCliToken
+
+# Stealth mode drift detection
+.\Invoke-EvilMist.ps1 -Script EntraAzureRBACCheck -Mode DriftDetect -BaselinePath "baseline.json" -EnableStealth -QuietStealth
+```
+
+📖 **Full documentation:** [EntraAzureRBACCheck-PS1.md](docs/EntraAzureRBACCheck-PS1.md)
+
+**Key Features:**
+- **Multi-Tenant Support** - Automatically scans ALL accessible tenants unless a specific tenant is specified
+- **Skip Failed Tenants** - Continue processing when MFA/Conditional Access blocks access to some tenants (`-SkipFailedTenants`)
+- **Baseline Export** - Maps and exports all Azure RBAC role assignments across tenants and subscriptions to JSON (desired state)
+- **Drift Detection** - Compares current Azure RBAC state against baseline to identify unauthorized changes
+- **Multi-Subscription Support** - Scans all accessible subscriptions across all tenants or specific subscriptions
+- **All Users Permissions Matrix** - Shows all principals and their Azure permissions in a user-centric view (`-ShowAllUsersPermissions`)
+- **Group Member Expansion** - Expands group memberships to reveal all users with Azure access via groups (`-ExpandGroupMembers`)
+- **Nested Group Support** - Recursively expands nested groups up to 5 levels deep
+- **Comprehensive Coverage** - Captures assignments at all scopes (subscription, resource group, resource) across tenants
+- **New Assignment Detection** - Identifies role assignments created outside of baseline
+- **Removed Assignment Detection** - Detects role assignments removed since baseline
+- **Modified Assignment Detection** - Identifies changes to existing role assignments (scope, role, principal, conditions)
+- **Risk Assessment** - Categorizes drift by risk level (CRITICAL/HIGH/MEDIUM) based on role and principal type
+- **Principal Analysis** - Tracks users, groups, and service principals with role assignments
+- **Role Definition Details** - Captures built-in vs custom roles, permissions, and descriptions
+- **Scope Hierarchy** - Analyzes assignments across subscription, resource group, and resource scopes
+- **Condition Support** - Tracks ABAC (Attribute-Based Access Control) conditions on assignments
+- **Tenant Tracking** - Includes tenant information for all assignments to support multi-tenant environments
+- **Matrix View** - Compact table format for quick drift visualization with tenant information
+- **Flexible Authentication** - Azure CLI (az login) or Azure PowerShell (Connect-AzAccount) authentication
+- **Export Options** - JSON baseline export, expanded group export, and JSON drift report with detailed recommendations
+- **Stealth Mode** - Configurable delays and jitter to avoid detection
+
+| Version | Documentation | File |
+|---------|---------------|------|
+| PowerShell | [EntraAzureRBACCheck-PS1.md](docs/EntraAzureRBACCheck-PS1.md) | `scripts/powershell/Invoke-EntraAzureRBACCheck.ps1` |
+
+---
+
 ## Documentation
 
 | Document | Description |
@@ -809,6 +880,7 @@ python scripts\python\entra_recon.py
 | [EntraGroupCheck-PS1.md](docs/EntraGroupCheck-PS1.md) | Group Security Analysis documentation including group enumeration, owner analysis with MFA status, no owner detection, excessive membership detection, role-assignable group detection, and risk assessment |
 | [EntraApplicationCheck-PS1.md](docs/EntraApplicationCheck-PS1.md) | Application Registration Security Check documentation including application enumeration, credential analysis, expiration tracking, API permission analysis, owner security assessment, and risk assessment |
 | [EntraAttackPathCheck-PS1.md](docs/EntraAttackPathCheck-PS1.md) | Attack Path Analysis documentation including privilege escalation paths, password reset delegations, transitive group memberships, shared mailbox access, risk assessment, and path complexity analysis |
+| [EntraAzureRBACCheck-PS1.md](docs/EntraAzureRBACCheck-PS1.md) | Azure RBAC Role Assignment Audit & Drift Detection documentation including baseline export, drift detection, multi-subscription support, multi-tenant support, skip failed tenants, group member expansion, all users permissions matrix, role assignment tracking, unauthorized change detection, and risk assessment |
 
 ---
 
@@ -840,81 +912,89 @@ Both versions provide the same core functionality:
 
 ### Toolkit Comparison
 
-| Feature | Enumerate-EntraUsers | MFA Security Check | Guest Account Enumeration | Critical Admin Access Check | Privileged Role Check | Service Principal Check | Application Registration Check | Conditional Access Check | Administrative Unit Check | Stale Account Check | Device Trust Check | SSPR Check | Password Policy Check | Legacy Auth Check | License Check | Directory Sync Check | Power Platform Check | Group Security Check | Attack Path Analysis |
-|---------|---------------------|-------------------|---------------------------|----------------------------|----------------------|------------------------|--------------------------|--------------------------|------------------------|---------------------|-------------------|-------------|---------------------|-------------------|--------------|---------------------|-------------------|-------------------|-------------------|-------------------|
-| **Purpose** | Comprehensive user enumeration | Focused MFA security audit | Guest access governance | Critical administrative access audit | Privileged role assignment audit | Service account security audit | Application registration security audit | Security policy gap analysis | Scoped admin access audit | Account hygiene audit | Device trust and compliance audit | SSPR configuration audit | Password policy security audit | Legacy authentication security audit | License and SKU analysis | Directory sync status and health audit | Power Platform enumeration and security audit | Group security analysis and governance | Attack path analysis - privilege escalation and lateral movement |
-| User Enumeration | 15+ methods | Standard method | Guest-focused | App assignment-based | Role assignment-based | Service principal-focused | | | | | | Legacy auth-focused | Sync-focused |
-| MFA Detection | Basic check | Advanced with method types | Advanced with method types | Advanced with method types | Advanced with method types | Owner MFA check | | | | | | Advanced with method types | ❌ |
-| Shared Mailbox Detection | ❌ | ✅ Automatic | ❌ (N/A for guests) | ❌ (N/A for app access) | ❌ (N/A for roles) | ❌ (N/A for SPs) | | | | | | ❌ (N/A for legacy auth) | ❌ |
-| Guest Domain Extraction | ❌ | ❌ | ✅ Automatic | ❌ | ❌ | ❌ | | | | | | ❌ | ❌ |
-| Invite Status Tracking | ❌ | ❌ | ✅ With acceptance dates | ❌ | ❌ | ❌ | | | | | | ❌ | ❌ |
-| App Access Tracking | ❌ | ❌ | ❌ | ✅ Multi-app coverage | ❌ | ❌ | | | | | | ❌ | ❌ |
-| Role Assignment Tracking | ❌ | ❌ | ❌ | ❌ | ✅ All directory roles | ❌ | | | | | | ❌ | ❌ |
-| PIM Assignment Tracking | ❌ | ❌ | ❌ | ❌ | ✅ Eligible & Active | ❌ | | | | | | ❌ | ❌ |
-| Credential Enumeration | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Secrets & certificates | ✅ Secrets & certificates | | | | | | ❌ | ❌ |
-| Credential Expiration Tracking | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Expired & expiring soon | ✅ Expired & expiring soon | | | | | | ❌ | ❌ |
-| Permission Analysis | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ High-risk & critical | ✅ High-risk & critical (API permissions) | | | | | | ❌ | ❌ |
-| Owner Analysis | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ With MFA status | ✅ With MFA status | ❌ | | | | | ❌ | ❌ | ✅ Group owners with MFA status |
-| Application Registration Enumeration | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Comprehensive | | | | | | ❌ | ❌ |
-| API Permission Analysis | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Delegated & application | | | | | | ❌ | ❌ |
-| Assignment Date Tracking | ❌ | ❌ | ✅ Invite dates | ✅ Assignment dates | ✅ Assignment dates & duration | ❌ | ❌ | | | | | ❌ | ❌ |
-| Policy Exclusion Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Users, groups, roles, apps | | | | | ❌ | ❌ |
-| MFA Enforcement Gaps | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Policy-level analysis | | | | | ❌ | ❌ |
-| Critical App Coverage | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ 10 critical apps | | | | | ❌ | ❌ |
-| Legacy Auth Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Policy targeting | | | | | ✅ 10 protocols | ❌ |
-| Legacy Protocol Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | | | | | ✅ IMAP/POP3/SMTP/EAS/etc | ❌ |
-| Last Legacy Auth Usage | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | | | | | ✅ Date/time tracking | ❌ |
-| Protocol Statistics | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | | | | | ✅ Success/failure counts | ❌ |
-| Policy Conflict Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Redundant/conflicting | ❌ | ❌ | ❌ | | | ❌ | ❌ |
-| Administrative Unit Enumeration | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Comprehensive | ❌ | ❌ | ❌ | | | ❌ | ❌ |
-| Scoped Role Assignment Analysis | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ All scoped assignments | ❌ | ❌ | ❌ | | | ❌ | ❌ |
-| AU Member Enumeration | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Members and roles | ❌ | ❌ | ❌ | | | ❌ | ❌ |
-| Stale Account Detection | Limited | Limited | Limited | Limited | Limited | ❌ | ❌ | Limited | ✅ >90 days inactive | ❌ | | | Limited | ❌ |
-| Never Signed-In Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Account age analysis | ❌ | | | ❌ | ❌ |
-| License Waste Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Disabled with licenses | ❌ | | | ❌ | ❌ |
-| Password Expiration Tracking | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Expired passwords | ❌ | ❌ | ✅ Expiration analysis | ❌ | ❌ |
-| SSPR Status Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Enabled/Registered/Capable | ❌ | ❌ | ❌ |
-| SSPR Method Analysis | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Registration methods | ❌ | ❌ | ❌ |
-| Backup Method Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ No backup methods | ❌ | ❌ | ❌ |
-| Strong Method Classification | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Strong vs weak methods | ❌ | ❌ | ❌ |
-| Device Enumeration | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Comprehensive | ❌ | ❌ | ❌ | ❌ |
-| Compliance Status Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | | ✅ Compliant/Non-compliant/Unknown | | | ❌ | ❌ |
-| BYOD Detection | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | | ✅ Automatic | | | ❌ | ❌ |
-| Stale Sign-In Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | | ✅ >90 days | ✅ >90 days | | | Limited | ❌ |
-| Intune Compliance Policies | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Full enumeration | | | ❌ | ❌ |
-| Device Trust Analysis | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Join types | | | ❌ | ❌ |
-| Management Status | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Managed/Unmanaged | | | ❌ | ❌ |
-| Last Sign-In Tracking | ✅ | ✅ With analytics | ✅ With analytics | ✅ With analytics | ✅ With analytics | Limited (SP activity) | ❌ | ✅ With analytics | ✅ With analytics | ✅ With analytics | ✅ With analytics | ✅ With analytics | ✅ With analytics | ✅ With analytics | ✅ With analytics |
-| Sign-In Capability Check | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Sync Status Detection | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Synced vs Cloud-Only |
-| Sync Error Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ All provisioning errors |
-| Stale Sync Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ >7 days since sync |
-| Sync Conflict Identification | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Duplicate attributes |
-| Sync Scope Analysis | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Basic configuration |
-| Tenant SKU Enumeration | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Full enumeration | ❌ |
-| License Assignment Tracking | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ All assignments | ❌ |
-| Privileged License Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ E5, P2, etc. | ❌ |
-| Unused License Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Disabled with licenses | ❌ | ❌ | ❌ | ❌ | ✅ Never signed in | ❌ |
-| License Usage Analytics | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Consumption stats | ❌ | ❌ |
-| Power Apps Enumeration | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Comprehensive |
-| Power Automate Flow Enumeration | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Comprehensive |
-| Sensitive Connector Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ 30+ connectors |
-| High-Risk Action Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Delete/Create/Modify |
-| Connector Risk Analysis | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ CRITICAL/HIGH/MEDIUM/LOW | ❌ |
-| Group Enumeration | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Comprehensive (all types) |
-| No Owner Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Orphaned groups |
-| Excessive Membership Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ >100 or >500 members |
-| Role-Assignable Group Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ CRITICAL risk groups |
-| Group Type Analysis | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Security/M365/Distribution/Dynamic |
-| Risk Level Assessment | Basic | Advanced (HIGH/MEDIUM/LOW) | Advanced (HIGH/MEDIUM/LOW) | Advanced (HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) |
-| Activity Analytics | Limited | Detailed (stale/recent/never) | Detailed (stale/recent/never) | Detailed (stale/recent/never) | Detailed (stale/recent/never) | Basic (age-based) | Detailed (credential expiration/permission analysis) | Policy gap analysis | Detailed (scoped admin activity) | Detailed (stale indicators) | Detailed (stale/recent/never) | Detailed (stale/recent/never) | Detailed (password age/policy gaps) | Detailed (usage recency/protocol stats) | Detailed (license usage/unused tracking) | Detailed (sync health/error stats) | Detailed (resource/environment/owner stats) | Detailed (group type/owner/membership stats) | Detailed (attack path type/complexity/risk stats) |
-| Matrix View | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Department Analysis | ✅ | ✅ With statistics | ✅ With statistics | ✅ With statistics | ✅ With statistics | ❌ | ❌ | ✅ With statistics | ✅ With statistics | ❌ | ✅ With statistics | ✅ With statistics | ✅ With statistics | ✅ With statistics | ✅ With statistics | ❌ | ❌ |
-| BloodHound Export | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| HTML Report | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| CSV/JSON Export | ✅ | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields |
-| Stealth Mode | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Best For** | Red team reconnaissance | MFA compliance audits | External user security | Privileged access audit | Privileged role governance | Service account security | Application registration security & credential management | Security policy gap analysis | Scoped admin access governance | Account hygiene & cleanup | Device trust and compliance | Password reset security | Password policy compliance | Legacy auth migration & security | License governance & cost optimization | Directory sync health & error tracking | Power Platform security & connector governance | Group security & governance | Attack path analysis & privilege escalation detection |
+| Feature | Enumerate-EntraUsers | MFA Security Check | Guest Account Enumeration | Critical Admin Access Check | Privileged Role Check | Service Principal Check | Application Registration Check | Conditional Access Check | Administrative Unit Check | Stale Account Check | Device Trust Check | SSPR Check | Password Policy Check | Legacy Auth Check | License Check | Directory Sync Check | Power Platform Check | Group Security Check | Attack Path Analysis | Azure RBAC Check |
+|---------|---------------------|-------------------|---------------------------|----------------------------|----------------------|------------------------|--------------------------|--------------------------|------------------------|---------------------|-------------------|-------------|---------------------|-------------------|--------------|---------------------|-------------------|-------------------|-------------------|-------------------|-------------------|
+| **Purpose** | Comprehensive user enumeration | Focused MFA security audit | Guest access governance | Critical administrative access audit | Privileged role assignment audit | Service account security audit | Application registration security audit | Security policy gap analysis | Scoped admin access audit | Account hygiene audit | Device trust and compliance audit | SSPR configuration audit | Password policy security audit | Legacy authentication security audit | License and SKU analysis | Directory sync status and health audit | Power Platform enumeration and security audit | Group security analysis and governance | Attack path analysis - privilege escalation and lateral movement | Multi-tenant Azure RBAC baseline export and drift detection |
+| User Enumeration | 15+ methods | Standard method | Guest-focused | App assignment-based | Role assignment-based | Service principal-focused | | | | | | Legacy auth-focused | Sync-focused | ❌ |
+| MFA Detection | Basic check | Advanced with method types | Advanced with method types | Advanced with method types | Advanced with method types | Owner MFA check | | | | | | Advanced with method types | ❌ | ❌ |
+| Shared Mailbox Detection | ❌ | ✅ Automatic | ❌ (N/A for guests) | ❌ (N/A for app access) | ❌ (N/A for roles) | ❌ (N/A for SPs) | | | | | | ❌ (N/A for legacy auth) | ❌ | ❌ |
+| Guest Domain Extraction | ❌ | ❌ | ✅ Automatic | ❌ | ❌ | ❌ | | | | | | ❌ | ❌ | ❌ |
+| Invite Status Tracking | ❌ | ❌ | ✅ With acceptance dates | ❌ | ❌ | ❌ | | | | | | ❌ | ❌ | ❌ |
+| App Access Tracking | ❌ | ❌ | ❌ | ✅ Multi-app coverage | ❌ | ❌ | | | | | | ❌ | ❌ | ❌ |
+| Role Assignment Tracking | ❌ | ❌ | ❌ | ❌ | ✅ All directory roles | ❌ | | | | | | ❌ | ❌ | ✅ All Azure RBAC roles |
+| PIM Assignment Tracking | ❌ | ❌ | ❌ | ❌ | ✅ Eligible & Active | ❌ | | | | | | ❌ | ❌ | ❌ |
+| Credential Enumeration | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Secrets & certificates | ✅ Secrets & certificates | | | | | | ❌ | ❌ | ❌ |
+| Credential Expiration Tracking | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Expired & expiring soon | ✅ Expired & expiring soon | | | | | | ❌ | ❌ | ❌ |
+| Permission Analysis | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ High-risk & critical | ✅ High-risk & critical (API permissions) | | | | | | ❌ | ❌ | ✅ RBAC role permissions |
+| Owner Analysis | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ With MFA status | ✅ With MFA status | ❌ | | | | | ❌ | ❌ | ✅ Group owners with MFA status | ❌ |
+| Application Registration Enumeration | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Comprehensive | | | | | | ❌ | ❌ | ❌ |
+| API Permission Analysis | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Delegated & application | | | | | | ❌ | ❌ | ❌ |
+| Assignment Date Tracking | ❌ | ❌ | ✅ Invite dates | ✅ Assignment dates | ✅ Assignment dates & duration | ❌ | ❌ | | | | | ❌ | ❌ | ✅ Role assignment creation dates |
+| Policy Exclusion Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Users, groups, roles, apps | | | | | ❌ | ❌ | ❌ |
+| MFA Enforcement Gaps | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Policy-level analysis | | | | | ❌ | ❌ | ❌ |
+| Critical App Coverage | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ 10 critical apps | | | | | ❌ | ❌ | ❌ |
+| Legacy Auth Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Policy targeting | | | | | ✅ 10 protocols | ❌ | ❌ |
+| Legacy Protocol Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | | | | | ✅ IMAP/POP3/SMTP/EAS/etc | ❌ | ❌ |
+| Last Legacy Auth Usage | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | | | | | ✅ Date/time tracking | ❌ | ❌ |
+| Protocol Statistics | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | | | | | ✅ Success/failure counts | ❌ | ❌ |
+| Policy Conflict Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Redundant/conflicting | ❌ | ❌ | ❌ | | | ❌ | ❌ | ❌ |
+| Administrative Unit Enumeration | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Comprehensive | ❌ | ❌ | ❌ | | | ❌ | ❌ | ❌ |
+| Scoped Role Assignment Analysis | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ All scoped assignments | ❌ | ❌ | ❌ | | | ❌ | ❌ | ❌ |
+| AU Member Enumeration | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Members and roles | ❌ | ❌ | ❌ | | | ❌ | ❌ | ❌ |
+| Stale Account Detection | Limited | Limited | Limited | Limited | Limited | ❌ | ❌ | Limited | ✅ >90 days inactive | ❌ | | | Limited | ❌ | ❌ |
+| Never Signed-In Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Account age analysis | ❌ | | | ❌ | ❌ | ❌ |
+| License Waste Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Disabled with licenses | ❌ | | | ❌ | ❌ | ❌ |
+| Password Expiration Tracking | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Expired passwords | ❌ | ❌ | ✅ Expiration analysis | ❌ | ❌ | ❌ |
+| SSPR Status Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Enabled/Registered/Capable | ❌ | ❌ | ❌ | ❌ |
+| SSPR Method Analysis | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Registration methods | ❌ | ❌ | ❌ | ❌ |
+| Backup Method Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ No backup methods | ❌ | ❌ | ❌ | ❌ |
+| Strong Method Classification | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Strong vs weak methods | ❌ | ❌ | ❌ | ❌ |
+| Device Enumeration | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Comprehensive | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Compliance Status Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | | ✅ Compliant/Non-compliant/Unknown | | | ❌ | ❌ | ❌ |
+| BYOD Detection | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | | ✅ Automatic | | | ❌ | ❌ | ❌ |
+| Stale Sign-In Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | | ✅ >90 days | ✅ >90 days | | | Limited | ❌ | ❌ |
+| Intune Compliance Policies | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Full enumeration | | | ❌ | ❌ | ❌ |
+| Device Trust Analysis | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Join types | | | ❌ | ❌ | ❌ |
+| Management Status | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Managed/Unmanaged | | | ❌ | ❌ | ❌ |
+| Last Sign-In Tracking | ✅ | ✅ With analytics | ✅ With analytics | ✅ With analytics | ✅ With analytics | Limited (SP activity) | ❌ | ✅ With analytics | ✅ With analytics | ✅ With analytics | ✅ With analytics | ✅ With analytics | ✅ With analytics | ✅ With analytics | ✅ With analytics | ❌ |
+| Sign-In Capability Check | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Sync Status Detection | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Synced vs Cloud-Only | ❌ |
+| Sync Error Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ All provisioning errors | ❌ |
+| Stale Sync Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ >7 days since sync | ❌ |
+| Sync Conflict Identification | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Duplicate attributes | ❌ |
+| Sync Scope Analysis | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Basic configuration | ❌ |
+| Tenant SKU Enumeration | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Full enumeration | ❌ | ❌ |
+| License Assignment Tracking | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ All assignments | ❌ | ❌ |
+| Privileged License Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ E5, P2, etc. | ❌ | ❌ |
+| Unused License Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Disabled with licenses | ❌ | ❌ | ❌ | ❌ | ✅ Never signed in | ❌ | ❌ |
+| License Usage Analytics | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Consumption stats | ❌ | ❌ | ❌ |
+| Power Apps Enumeration | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Comprehensive | ❌ |
+| Power Automate Flow Enumeration | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Comprehensive | ❌ |
+| Sensitive Connector Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ 30+ connectors | ❌ |
+| High-Risk Action Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Delete/Create/Modify | ❌ |
+| Connector Risk Analysis | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ CRITICAL/HIGH/MEDIUM/LOW | ❌ | ❌ |
+| Group Enumeration | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Comprehensive (all types) | ❌ |
+| No Owner Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Orphaned groups | ❌ |
+| Excessive Membership Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ >100 or >500 members | ❌ |
+| Role-Assignable Group Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ CRITICAL risk groups | ❌ |
+| Group Type Analysis | ✅ Basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Security/M365/Distribution/Dynamic | ❌ |
+| Multi-Tenant Scanning | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ All accessible tenants |
+| Skip Failed Tenants | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Continue on MFA/CA failures |
+| Azure RBAC Baseline Export | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ JSON baseline |
+| Azure RBAC Drift Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ New/Removed/Modified assignments |
+| Multi-Subscription Support | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ All subscriptions across tenants |
+| Group Member Expansion | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Expand groups to show users |
+| All Users Permissions Matrix | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ User-centric permission view |
+| Scope Hierarchy Analysis | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Sub/RG/Resource |
+| Risk Level Assessment | Basic | Advanced (HIGH/MEDIUM/LOW) | Advanced (HIGH/MEDIUM/LOW) | Advanced (HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM) |
+| Activity Analytics | Limited | Detailed (stale/recent/never) | Detailed (stale/recent/never) | Detailed (stale/recent/never) | Detailed (stale/recent/never) | Basic (age-based) | Detailed (credential expiration/permission analysis) | Policy gap analysis | Detailed (scoped admin activity) | Detailed (stale indicators) | Detailed (stale/recent/never) | Detailed (stale/recent/never) | Detailed (password age/policy gaps) | Detailed (usage recency/protocol stats) | Detailed (license usage/unused tracking) | Detailed (sync health/error stats) | Detailed (resource/environment/owner stats) | Detailed (group type/owner/membership stats) | Detailed (attack path type/complexity/risk stats) | Detailed (drift type/role/tenant/subscription stats) |
+| Matrix View | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Department Analysis | ✅ | ✅ With statistics | ✅ With statistics | ✅ With statistics | ✅ With statistics | ❌ | ❌ | ✅ With statistics | ✅ With statistics | ❌ | ✅ With statistics | ✅ With statistics | ✅ With statistics | ✅ With statistics | ✅ With statistics | ❌ | ❌ | ❌ |
+| BloodHound Export | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| HTML Report | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| CSV/JSON Export | ✅ | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ Enhanced fields | ✅ JSON baseline/drift report |
+| Stealth Mode | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Best For** | Red team reconnaissance | MFA compliance audits | External user security | Privileged access audit | Privileged role governance | Service account security | Application registration security & credential management | Security policy gap analysis | Scoped admin access governance | Account hygiene & cleanup | Device trust and compliance | Password reset security | Password policy compliance | Legacy auth migration & security | License governance & cost optimization | Directory sync health & error tracking | Power Platform security & connector governance | Group security & governance | Attack path analysis & privilege escalation detection | Multi-tenant Azure RBAC governance & unauthorized access detection |
 
 ---
 
@@ -940,6 +1020,21 @@ pip install azure-identity
 **Enumerate-EntraUsers:** The script will automatically install the required `Microsoft.Graph.Users` module on first run.
 
 **MFA Security Check, Guest Account Enumeration, Critical Admin Access Check, Privileged Role Check, Service Principal Check, Application Registration Check, Conditional Access Check, Administrative Unit Check, Stale Account Check, Device Trust Check, SSPR Check, Password Policy Check, Legacy Auth Check, License Check, Directory Sync Check, Power Platform Check, and Group Security Check:** Require Microsoft Graph PowerShell SDK:
+
+**Azure RBAC Check:** Requires Azure PowerShell modules:
+
+```powershell
+Install-Module Az -Scope CurrentUser
+```
+
+Or install individual modules:
+
+```powershell
+Install-Module Az.Accounts -Scope CurrentUser
+Install-Module Az.Resources -Scope CurrentUser
+```
+
+**Other tools:**
 
 ```powershell
 Install-Module Microsoft.Graph -Scope CurrentUser

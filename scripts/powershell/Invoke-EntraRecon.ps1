@@ -552,30 +552,93 @@ function Invoke-GraphRequest {
     return $null
 }
 
-function Install-GraphModule {
+# Check if Microsoft.Graph module is installed
+function Test-GraphModule {
+    Write-Host "[*] Checking Microsoft.Graph PowerShell module..." -ForegroundColor Cyan
+    
     $modules = @(
+        "Microsoft.Graph.Authentication",
         "Microsoft.Graph.Users",
-        "Microsoft.Graph.Groups", 
+        "Microsoft.Graph.Groups",
         "Microsoft.Graph.People",
         "Microsoft.Graph.Calendar",
         "Microsoft.Graph.Mail",
         "Microsoft.Graph.Files",
         "Microsoft.Graph.Teams",
         "Microsoft.Graph.Planner",
-        "Microsoft.Graph.Sites"
+        "Microsoft.Graph.Sites",
+        "Microsoft.Graph.Identity.SignIns"
     )
     
-    foreach ($moduleName in $modules) {
-        if (-not (Get-Module -ListAvailable -Name $moduleName)) {
-            Write-Host "[*] $moduleName module not found. Installing..." -ForegroundColor Yellow
+    $missingModules = @()
+    foreach ($module in $modules) {
+        if (-not (Get-Module -ListAvailable -Name $module)) {
+            $missingModules += $module
+        }
+    }
+    
+    if ($missingModules.Count -gt 0) {
+        Write-Host "[!] Missing required modules:" -ForegroundColor Yellow
+        $missingModules | ForEach-Object { Write-Host "    - $_" -ForegroundColor Yellow }
+        Write-Host "`n[*] Installing missing modules automatically..." -ForegroundColor Cyan
+        
+        # Check if running as administrator for AllUsers scope
+        $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        $scope = if ($isAdmin) { "AllUsers" } else { "CurrentUser" }
+        
+        foreach ($module in $missingModules) {
+            Write-Host "[*] Installing $module (Scope: $scope)..." -ForegroundColor Cyan
             try {
-                Install-Module $moduleName -Scope CurrentUser -Force -AllowClobber -ErrorAction SilentlyContinue
-                Write-Host "[+] $moduleName installed." -ForegroundColor Green
+                # Set PSGallery as trusted if not already
+                $psGallery = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue
+                if ($psGallery -and $psGallery.InstallationPolicy -ne 'Trusted') {
+                    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue
+                }
+                
+                Install-Module -Name $module -Scope $scope -AllowClobber -Force -ErrorAction Stop
+                Write-Host "[+] Successfully installed $module" -ForegroundColor Green
             }
             catch {
-                # Silent fail - not all modules are required
+                Write-Host "[ERROR] Failed to install $module : $_" -ForegroundColor Red
+                Write-Host "[*] Try manually: Install-Module $module -Scope CurrentUser -Force" -ForegroundColor Yellow
+                return $false
             }
         }
+        Write-Host "[+] All modules installed successfully" -ForegroundColor Green
+    }
+    
+    Write-Host "[+] All required modules are installed" -ForegroundColor Green
+    return $true
+}
+
+# Initialize and import Graph modules properly
+function Initialize-GraphModules {
+    Write-Host "[*] Initializing Microsoft Graph modules..." -ForegroundColor Cyan
+    
+    try {
+        # Remove any loaded Graph modules to avoid version conflicts
+        $loadedModules = Get-Module Microsoft.Graph.* 
+        if ($loadedModules) {
+            Write-Host "[*] Cleaning up loaded Graph modules..." -ForegroundColor Yellow
+            $loadedModules | ForEach-Object {
+                Remove-Module $_.Name -Force -ErrorAction SilentlyContinue
+            }
+        }
+        
+        # Import modules in the correct order (Authentication first)
+        Write-Host "[*] Importing Microsoft.Graph.Authentication..." -ForegroundColor Cyan
+        Import-Module Microsoft.Graph.Authentication -Force -ErrorAction Stop
+        
+        Write-Host "[*] Importing Microsoft.Graph.Users..." -ForegroundColor Cyan
+        Import-Module Microsoft.Graph.Users -Force -ErrorAction Stop
+        
+        Write-Host "[+] Modules imported successfully" -ForegroundColor Green
+        return $true
+    }
+    catch {
+        Write-Host "[ERROR] Failed to import modules: $_" -ForegroundColor Red
+        Write-Host "[*] Try running: Update-Module Microsoft.Graph -Force" -ForegroundColor Yellow
+        return $false
     }
 }
 
@@ -10617,8 +10680,17 @@ function Show-Menu {
 
 Show-Banner
 
-Install-GraphModule
-Import-Module Microsoft.Graph.Users -ErrorAction Stop
+# Check required modules
+if (-not (Test-GraphModule)) {
+    Write-Host "`n[ERROR] Required modules check failed. Exiting." -ForegroundColor Red
+    exit 1
+}
+
+# Initialize and import modules properly
+if (-not (Initialize-GraphModules)) {
+    Write-Host "`n[ERROR] Failed to initialize modules. Exiting." -ForegroundColor Red
+    exit 1
+}
 
 if (-not (Connect-ToGraph -Tenant $TenantId)) {
     Write-Host "`n[!] Authentication failed. Exiting." -ForegroundColor Red
