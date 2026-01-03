@@ -27,6 +27,7 @@
     - EntraDirectorySyncCheck
     - EntraPowerPlatformCheck
     - EntraAttackPathCheck
+    - EntraAzureRBACCheck
 
 .PARAMETER List
     List all available scripts and exit.
@@ -45,6 +46,14 @@
     .\Invoke-EvilMist.ps1 -List
     # Lists all available scripts
 #>
+
+# PowerShell 7+ required
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    Write-Host '[ERROR] This script requires PowerShell 7 or later.' -ForegroundColor Red
+    Write-Host ('Current version: PowerShell ' + $PSVersionTable.PSVersion.ToString()) -ForegroundColor Yellow
+    Write-Host 'Download PowerShell 7: https://aka.ms/powershell-release?tag=stable' -ForegroundColor Cyan
+    exit 1
+}
 
 # NO param() block - this allows any parameters to pass through without validation
 # We parse $args manually to extract -Script and -List, and pass everything else to the target script
@@ -70,6 +79,7 @@ $AvailableScripts = @{
     'EntraGroupCheck' = 'Invoke-EntraGroupCheck.ps1'
     'EntraApplicationCheck' = 'Invoke-EntraApplicationCheck.ps1'
     'EntraAttackPathCheck' = 'Invoke-EntraAttackPathCheck.ps1'
+    'EntraAzureRBACCheck' = 'Invoke-EntraAzureRBACCheck.ps1'
 }
 
 # Script descriptions for display
@@ -93,6 +103,7 @@ $ScriptDescriptions = @{
     'EntraGroupCheck' = 'Group security analysis and governance'
     'EntraApplicationCheck' = 'Application registration security check'
     'EntraAttackPathCheck' = 'Attack path analysis - privilege escalation and lateral movement'
+    'EntraAzureRBACCheck' = 'Azure RBAC role assignment audit and drift detection'
 }
 
 function Show-AvailableScripts {
@@ -110,12 +121,9 @@ function Show-AvailableScripts {
 
 function Show-InteractiveMenu {
     Clear-Host
-    Write-Host "`n" -NoNewline
-    Write-Host "╔═══════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-    Write-Host "║" -NoNewline -ForegroundColor Cyan
-    Write-Host "           EvilMist Script Dispatcher                      " -NoNewline -ForegroundColor White
-    Write-Host "║" -ForegroundColor Cyan
-    Write-Host "╚═══════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+    Write-Host "`n===============================================================" -ForegroundColor Cyan
+    Write-Host "           EvilMist Script Dispatcher                      " -ForegroundColor White
+    Write-Host "===============================================================" -ForegroundColor Cyan
     Write-Host ""
     
     Show-AvailableScripts

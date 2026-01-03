@@ -294,13 +294,31 @@ function Test-GraphModule {
     if ($missingModules.Count -gt 0) {
         Write-Host "[!] Missing required modules:" -ForegroundColor Yellow
         $missingModules | ForEach-Object { Write-Host "    - $_" -ForegroundColor Yellow }
-        Write-Host "`n[*] Install with:" -ForegroundColor Cyan
-        Write-Host "    Install-Module Microsoft.Graph -Scope CurrentUser" -ForegroundColor White
-        Write-Host "    Or individually:" -ForegroundColor Cyan
-        $missingModules | ForEach-Object { 
-            Write-Host "    Install-Module $_ -Scope CurrentUser" -ForegroundColor White 
+        Write-Host "`n[*] Installing missing modules automatically..." -ForegroundColor Cyan
+        
+        # Check if running as administrator for AllUsers scope
+        $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        $scope = if ($isAdmin) { "AllUsers" } else { "CurrentUser" }
+        
+        foreach ($module in $missingModules) {
+            Write-Host "[*] Installing $module (Scope: $scope)..." -ForegroundColor Cyan
+            try {
+                # Set PSGallery as trusted if not already
+                $psGallery = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue
+                if ($psGallery -and $psGallery.InstallationPolicy -ne 'Trusted') {
+                    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue
+                }
+                
+                Install-Module -Name $module -Scope $scope -AllowClobber -Force -ErrorAction Stop
+                Write-Host "[+] Successfully installed $module" -ForegroundColor Green
+            }
+            catch {
+                Write-Host "[ERROR] Failed to install $module : $_" -ForegroundColor Red
+                Write-Host "[*] Try manually: Install-Module $module -Scope CurrentUser -Force" -ForegroundColor Yellow
+                return $false
+            }
         }
-        return $false
+        Write-Host "[+] All modules installed successfully" -ForegroundColor Green
     }
     
     Write-Host "[+] All required modules are installed" -ForegroundColor Green
