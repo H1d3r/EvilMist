@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="assets/EvilMist.png" alt="EvilMist Logo" width="400"/>
+</div>
+
 # EvilMist
 
 EvilMist is a collection of scripts and utilities designed to support cloud security configuration audit, cloud penetration testing & cloud red teaming. The toolkit helps identify misconfigurations, assess privilege-escalation paths, and simulate attack techniques. EvilMist aims to streamline cloud-focused red-team workflows and improve the overall security posture of cloud infrastructures
