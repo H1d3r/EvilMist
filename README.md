@@ -826,6 +826,12 @@ python scripts\python\entra_recon.py
 
 # Stealth mode drift detection
 .\Invoke-EvilMist.ps1 -Script EntraAzureRBACCheck -Mode DriftDetect -BaselinePath "baseline.json" -EnableStealth -QuietStealth
+
+# Export excluding PIM/JIT time-bounded assignments (focus on permanent assignments only)
+.\Invoke-EvilMist.ps1 -Script EntraAzureRBACCheck -Mode Export -ExcludePIM
+
+# Detect drift excluding PIM/JIT assignments (ignore temporary elevated access)
+.\Invoke-EvilMist.ps1 -Script EntraAzureRBACCheck -Mode DriftDetect -BaselinePath "baseline.json" -ExcludePIM
 ```
 
 📖 **Full documentation:** [EntraAzureRBACCheck-PS1.md](docs/EntraAzureRBACCheck-PS1.md)
@@ -839,11 +845,14 @@ python scripts\python\entra_recon.py
 - **All Users Permissions Matrix** - Shows all principals and their Azure permissions in a user-centric view (`-ShowAllUsersPermissions`)
 - **Group Member Expansion** - Expands group memberships to reveal all users with Azure access via groups (`-ExpandGroupMembers`)
 - **Nested Group Support** - Recursively expands nested groups up to 5 levels deep
+- **PIM/JIT Exclusion** - Exclude time-bounded PIM role assignments to focus on permanent access (`-ExcludePIM`)
 - **Comprehensive Coverage** - Captures assignments at all scopes (subscription, resource group, resource) across tenants
 - **New Assignment Detection** - Identifies role assignments created outside of baseline
 - **Removed Assignment Detection** - Detects role assignments removed since baseline
-- **Modified Assignment Detection** - Identifies changes to existing role assignments (scope, role, principal, conditions)
+- **Modified Assignment Detection** - Identifies changes to existing role assignments (scope, role, principal)
+- **ABAC Condition Mismatch Detection** - Detects when role assignment conditions differ from baseline (added, removed, or modified)
 - **Risk Assessment** - Categorizes drift by risk level (CRITICAL/HIGH/MEDIUM) based on role and principal type
+- **Remediation Instructions** - Generates Terraform import blocks, Azure CLI, and PowerShell commands for each drift issue
 - **Principal Analysis** - Tracks users, groups, and service principals with role assignments
 - **Role Definition Details** - Captures built-in vs custom roles, permissions, and descriptions
 - **Scope Hierarchy** - Analyzes assignments across subscription, resource group, and resource scopes
@@ -884,7 +893,7 @@ python scripts\python\entra_recon.py
 | [EntraGroupCheck-PS1.md](docs/EntraGroupCheck-PS1.md) | Group Security Analysis documentation including group enumeration, owner analysis with MFA status, no owner detection, excessive membership detection, role-assignable group detection, and risk assessment |
 | [EntraApplicationCheck-PS1.md](docs/EntraApplicationCheck-PS1.md) | Application Registration Security Check documentation including application enumeration, credential analysis, expiration tracking, API permission analysis, owner security assessment, and risk assessment |
 | [EntraAttackPathCheck-PS1.md](docs/EntraAttackPathCheck-PS1.md) | Attack Path Analysis documentation including privilege escalation paths, password reset delegations, transitive group memberships, shared mailbox access, risk assessment, and path complexity analysis |
-| [EntraAzureRBACCheck-PS1.md](docs/EntraAzureRBACCheck-PS1.md) | Azure RBAC Role Assignment Audit & Drift Detection documentation including baseline export, drift detection, multi-subscription support, multi-tenant support, skip failed tenants, group member expansion, all users permissions matrix, role assignment tracking, unauthorized change detection, and risk assessment |
+| [EntraAzureRBACCheck-PS1.md](docs/EntraAzureRBACCheck-PS1.md) | Azure RBAC Role Assignment Audit & Drift Detection documentation including baseline export, drift detection, multi-subscription support, multi-tenant support, skip failed tenants, group member expansion, all users permissions matrix, PIM/JIT exclusion, ABAC condition mismatch detection, remediation instructions (Terraform/CLI/PowerShell), role assignment tracking, unauthorized change detection, and risk assessment |
 
 ---
 
@@ -990,6 +999,9 @@ Both versions provide the same core functionality:
 | Group Member Expansion | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Expand groups to show users |
 | All Users Permissions Matrix | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ User-centric permission view |
 | Scope Hierarchy Analysis | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Sub/RG/Resource |
+| PIM/JIT Exclusion | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Exclude time-bounded assignments |
+| ABAC Condition Detection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Condition mismatch drift |
+| Remediation Instructions | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Terraform/CLI/PowerShell |
 | Risk Level Assessment | Basic | Advanced (HIGH/MEDIUM/LOW) | Advanced (HIGH/MEDIUM/LOW) | Advanced (HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM/LOW) | Advanced (CRITICAL/HIGH/MEDIUM) |
 | Activity Analytics | Limited | Detailed (stale/recent/never) | Detailed (stale/recent/never) | Detailed (stale/recent/never) | Detailed (stale/recent/never) | Basic (age-based) | Detailed (credential expiration/permission analysis) | Policy gap analysis | Detailed (scoped admin activity) | Detailed (stale indicators) | Detailed (stale/recent/never) | Detailed (stale/recent/never) | Detailed (password age/policy gaps) | Detailed (usage recency/protocol stats) | Detailed (license usage/unused tracking) | Detailed (sync health/error stats) | Detailed (resource/environment/owner stats) | Detailed (group type/owner/membership stats) | Detailed (attack path type/complexity/risk stats) | Detailed (drift type/role/tenant/subscription stats) |
 | Matrix View | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
