@@ -23,9 +23,11 @@ This script provides comprehensive Azure RBAC role assignment auditing across al
 - **Baseline Comparison** - Compares current Azure RBAC state against exported baseline
 - **New Assignment Detection** - Identifies role assignments created outside of baseline
 - **Removed Assignment Detection** - Detects role assignments removed since baseline
-- **Modified Assignment Detection** - Identifies changes to existing role assignments (scope, role, principal, conditions)
+- **Modified Assignment Detection** - Identifies changes to existing role assignments (scope, role, principal)
+- **ABAC Condition Mismatch Detection** - Detects when role assignment conditions differ from baseline
 - **Risk Assessment** - Categorizes drift by risk level (CRITICAL/HIGH/MEDIUM)
 - **Detailed Recommendations** - Provides actionable recommendations for each drift issue
+- **Remediation Instructions** - Generates Terraform import blocks, Azure CLI/PowerShell commands for each drift issue
 - **JSON Drift Report** - Exports drift findings to JSON for integration with security tools
 
 ## Requirements
@@ -65,6 +67,8 @@ Install-Module Microsoft.Graph.Authentication -Scope CurrentUser
 | `-Matrix` | Switch | Display results in matrix/table format | - |
 | `-SkipFailedTenants` | Switch | Continue on tenant authentication failures | - |
 | `-ShowAllUsersPermissions` | Switch | Display user permissions matrix in Export mode | - |
+| `-ExpandGroupMembers` | Switch | Expand group memberships to show inherited access | - |
+| `-ExcludePIM` | Switch | Exclude PIM/JIT time-bounded role assignments | - |
 
 ## Usage Examples
 
@@ -91,6 +95,12 @@ Install-Module Microsoft.Graph.Authentication -Scope CurrentUser
 
 # Export and show all users permissions matrix
 .\Invoke-EntraAzureRBACCheck.ps1 -Mode Export -ShowAllUsersPermissions
+
+# Export with group membership expansion
+.\Invoke-EntraAzureRBACCheck.ps1 -Mode Export -ExpandGroupMembers
+
+# Export excluding PIM/JIT time-bounded assignments (focus on permanent assignments only)
+.\Invoke-EntraAzureRBACCheck.ps1 -Mode Export -ExcludePIM
 ```
 
 ### DriftDetect Mode
@@ -110,6 +120,9 @@ Install-Module Microsoft.Graph.Authentication -Scope CurrentUser
 
 # Detect drift for specific tenant
 .\Invoke-EntraAzureRBACCheck.ps1 -Mode DriftDetect -BaselinePath "rbac-baseline.json" -TenantId "00000000-0000-0000-0000-000000000000"
+
+# Detect drift excluding PIM/JIT assignments (ignore temporary elevated access)
+.\Invoke-EntraAzureRBACCheck.ps1 -Mode DriftDetect -BaselinePath "rbac-baseline.json" -ExcludePIM
 ```
 
 ### Using Script Dispatcher
@@ -129,13 +142,17 @@ Install-Module Microsoft.Graph.Authentication -Scope CurrentUser
 ```json
 {
   "ExportDate": "2025-01-03T12:00:00Z",
-  "ExportVersion": "2.0",
+  "ExportVersion": "2.3",
   "Summary": {
     "TotalTenants": 2,
     "TotalSubscriptions": 5,
     "TotalAssignments": 150,
+    "TotalExpandedAssignments": 0,
     "SkippedTenants": 0,
-    "IncludeInherited": false
+    "IncludeInherited": false,
+    "IncludesExpandedGroups": false,
+    "ExcludePIM": true,
+    "ExcludedPIMAssignments": 5
   },
   "ScopeStatistics": {
     "SubscriptionLevel": 50,
@@ -192,7 +209,7 @@ Install-Module Microsoft.Graph.Authentication -Scope CurrentUser
 ```json
 {
   "ReportDate": "2025-01-03T14:00:00Z",
-  "ReportVersion": "2.0",
+  "ReportVersion": "2.3",
   "BaselineFile": "rbac-baseline.json",
   "DriftDetected": true,
   "Summary": {
@@ -200,22 +217,57 @@ Install-Module Microsoft.Graph.Authentication -Scope CurrentUser
     "NewAssignments": 3,
     "RemovedAssignments": 1,
     "ModifiedAssignments": 1,
+    "ConditionMismatchAssignments": 1,
+    "NewGroupMembers": 0,
+    "RemovedGroupMembers": 0,
     "CriticalIssues": 2,
     "HighIssues": 2,
-    "MediumIssues": 1
+    "MediumIssues": 1,
+    "BaselineHadExpandedGroups": false,
+    "ExcludePIM": true,
+    "ExcludedPIMAssignments": 3
   },
   "ScanInfo": {
     "TenantsScanned": [...],
     "SubscriptionsScanned": [...],
     "TotalCurrentAssignments": 152,
+    "ExcludePIM": true,
+    "ExcludedPIMAssignments": 3,
     "ScanTimestamp": "2025-01-03T14:00:00Z"
   },
   "BaselineInfo": {
-    "TotalBaselineAssignments": 150
+    "TotalBaselineAssignments": 150,
+    "TotalBaselineExpandedAssignments": 0,
+    "TotalBaselineExpandedGroups": 0
   },
-  "NewAssignmentsDetails": [...],
-  "RemovedAssignmentsDetails": [...],
-  "ModifiedAssignmentsDetails": [...]
+  "DirectAssignmentDrift": {
+    "NewAssignments": [...],
+    "RemovedAssignments": [...],
+    "ModifiedAssignments": [...]
+  },
+  "ConditionDrift": {
+    "ConditionMismatchAssignments": [
+      {
+        "DriftType": "CONDITION_MISMATCH",
+        "RiskLevel": "HIGH",
+        "PrincipalDisplayName": "John Doe",
+        "RoleName": "Storage Blob Data Contributor",
+        "ConditionBaseline": "@Resource[Microsoft.Storage/...] StringEquals 'container-a'",
+        "ConditionCurrent": null,
+        "Issue": "ABAC condition removed",
+        "Remediation": {
+          "ImportBlock": "...",
+          "VarFileEntry": {...},
+          "PowerShell": "...",
+          "Instructions": "..."
+        }
+      }
+    ]
+  },
+  "GroupMembershipDrift": {
+    "NewMembers": [...],
+    "RemovedMembers": [...]
+  }
 }
 ```
 
@@ -225,8 +277,8 @@ Install-Module Microsoft.Graph.Authentication -Scope CurrentUser
 
 | Risk Level | Color | Description |
 |------------|-------|-------------|
-| **CRITICAL** | Red | New/modified Owner, Contributor, or Administrator role assignments |
-| **HIGH** | Yellow | New assignments for other privileged roles, or removed high-privilege roles |
+| **CRITICAL** | Red | New/modified Owner, Contributor, or Administrator role assignments; ABAC condition changes on high-privilege roles |
+| **HIGH** | Yellow | New assignments for other privileged roles, removed high-privilege roles, or ABAC condition changes |
 | **MEDIUM** | Green | Removed standard role assignments |
 
 ### Export Risk Classification (Matrix View)
@@ -358,6 +410,114 @@ Enable stealth mode to avoid detection and throttling:
 
 # Quiet stealth (no delay messages)
 .\Invoke-EntraAzureRBACCheck.ps1 -Mode Export -EnableStealth -QuietStealth
+```
+
+## PIM/JIT Exclusion
+
+The `-ExcludePIM` parameter allows you to exclude Privileged Identity Management (PIM) and Just-In-Time (JIT) role assignments from both export and drift detection. These are time-bounded assignments with an expiration date set via Azure PIM.
+
+### When to Use
+
+Use `-ExcludePIM` when you want to:
+- Focus on permanent role assignments only
+- Ignore temporary elevated access granted through PIM
+- Reduce noise from legitimate JIT access in drift reports
+- Track only the "standing" RBAC posture of your environment
+
+### How It Works
+
+1. The script queries `Get-AzRoleAssignmentScheduleInstance` to identify active PIM assignments
+2. Assignments with an `EndDateTime` are considered time-bounded (PIM/JIT)
+3. These assignments are filtered out before processing
+4. Statistics on excluded assignments are included in the export/drift report
+
+### Example
+
+```powershell
+# Export permanent assignments only (exclude PIM/JIT)
+.\Invoke-EntraAzureRBACCheck.ps1 -Mode Export -ExcludePIM -ExportPath "permanent-baseline.json"
+
+# Detect drift in permanent assignments only
+.\Invoke-EntraAzureRBACCheck.ps1 -Mode DriftDetect -BaselinePath "permanent-baseline.json" -ExcludePIM
+```
+
+**Note**: PIM requires Azure AD P2 licensing. In environments without PIM, this parameter has no effect.
+
+## ABAC Condition Mismatch Detection
+
+The script detects when ABAC (Attribute-Based Access Control) conditions on role assignments differ between baseline and current state.
+
+### What It Detects
+
+- **Condition Added** - A new ABAC condition was added to an existing assignment
+- **Condition Removed** - An ABAC condition was removed (potentially granting broader access)
+- **Condition Modified** - The condition expression was changed
+- **Version Changed** - The condition version was updated
+
+### Why It Matters
+
+ABAC conditions restrict what actions a role assignment grants. For example, a Storage Blob Data Contributor might be limited to specific containers via a condition. Removing or modifying these conditions can inadvertently grant broader access than intended.
+
+### Example Output
+
+```
+[HIGH] CONDITION_MISMATCH
+  Tenant: contoso (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+  Subscription: Production
+  Role: Storage Blob Data Contributor
+  Principal: john.doe@contoso.com (User)
+  Issue: ABAC condition removed
+  Condition (Baseline): @Resource[Microsoft.Storage/...] StringEquals 'container-a'
+  Condition (Current): [none]
+  Recommendation: Review ABAC condition change - removing or modifying conditions can grant broader access
+```
+
+## Remediation Instructions
+
+Each drift issue includes actionable remediation instructions with:
+
+### Terraform Integration
+
+For new assignments detected outside of Terraform:
+
+```hcl
+# Import existing role assignment to Terraform state
+import {
+  to = azurerm_role_assignment.john_doe_contributor
+  id = "/subscriptions/.../providers/Microsoft.Authorization/roleAssignments/..."
+}
+```
+
+### Azure CLI / PowerShell Commands
+
+```powershell
+# To REMOVE if unauthorized:
+Remove-AzRoleAssignment -ObjectId "principal-id" -Scope "/subscriptions/..." -RoleDefinitionName "Contributor"
+
+# To RESTORE if removal was unauthorized:
+New-AzRoleAssignment -ObjectId "principal-id" -Scope "/subscriptions/..." -RoleDefinitionName "Contributor"
+```
+
+### Workflow Instructions
+
+Each drift type includes specific guidance:
+- **NEW_ASSIGNMENT**: Import to Terraform or remove if unauthorized
+- **REMOVED_ASSIGNMENT**: Restore access or update baseline
+- **CONDITION_MISMATCH**: Restore baseline condition or update baseline
+- **MODIFIED_ASSIGNMENT**: Investigate changes and update as needed
+- **NEW_GROUP_MEMBER**: Remove from group or update baseline with `-ExpandGroupMembers`
+- **REMOVED_GROUP_MEMBER**: Restore to group or update baseline with `-ExpandGroupMembers`
+
+### Group Membership Remediation
+
+For group-based drift (requires `-ExpandGroupMembers` on baseline export):
+
+```powershell
+# Remove unauthorized group member
+Remove-AzADGroupMember -GroupObjectId "group-id" -MemberObjectId "user-id"
+
+# Restore removed group member
+Add-AzADGroupMember -TargetGroupObjectId "group-id" -MemberObjectId "user-id"
 ```
 
 ## Use Cases

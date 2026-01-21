@@ -93,6 +93,11 @@
     Expand group memberships to show all users who have Azure access through group membership.
     Requires Directory.Read.All or GroupMember.Read.All permissions in Microsoft Graph.
 
+.PARAMETER ExcludePIM
+    Exclude PIM (Privileged Identity Management) and JIT (Just-In-Time) role assignments from export and drift detection.
+    These are time-bounded assignments that have an expiration date set via Azure PIM.
+    Useful when you want to focus on permanent assignments only and ignore temporary elevated access.
+
 .EXAMPLE
     .\Invoke-EntraAzureRBACCheck.ps1 -Mode Export -ExportPath "rbac-baseline.json"
 
@@ -161,7 +166,10 @@ param(
     [switch]$ShowAllUsersPermissions,
 
     [Parameter(Mandatory = $false)]
-    [switch]$ExpandGroupMembers
+    [switch]$ExpandGroupMembers,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$ExcludePIM
 )
 
 # PowerShell 7+ required
@@ -200,6 +208,7 @@ $script:DriftResults = @{
     NewAssignments = @()
     RemovedAssignments = @()
     ModifiedAssignments = @()
+    ConditionMismatchAssignments = @()
     NewGroupMembers = @()
     RemovedGroupMembers = @()
 }
@@ -217,6 +226,10 @@ $script:StealthConfig = @{
     MaxRetries = 3
     QuietMode = $false
 }
+
+# PIM/JIT exclusion tracking
+$script:PIMAssignmentIds = @{}
+$script:ExcludedPIMCount = 0
 
 # Banner
 function Show-Banner {
@@ -257,6 +270,370 @@ function Show-RequiredPermissions {
     Write-Host "    2. Or use 'Security Reader' for security-focused access" -ForegroundColor Gray
     Write-Host "    3. For cross-tenant access, ensure you're a guest in the target tenant" -ForegroundColor Gray
     Write-Host ""
+}
+
+function Get-PIMRoleAssignments {
+    <#
+    .SYNOPSIS
+        Retrieves PIM (Privileged Identity Management) role assignment schedule instances.
+    .DESCRIPTION
+        Fetches active PIM/JIT role assignments that have time-bound access (EndDateTime set).
+        These are assignments created through Azure PIM with an expiration date.
+    .PARAMETER Scope
+        The scope to query for PIM assignments (e.g., /subscriptions/{id}).
+    .OUTPUTS
+        Hashtable of RoleAssignmentId -> PIM assignment details for assignments with EndDateTime.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Scope
+    )
+    
+    $pimAssignments = @{}
+    
+    try {
+        Invoke-StealthDelay
+        
+        # Get-AzRoleAssignmentScheduleInstance returns active PIM role assignments
+        # These are time-bounded assignments created through Azure PIM
+        $scheduleInstances = Get-AzRoleAssignmentScheduleInstance -Scope $Scope -ErrorAction SilentlyContinue
+        
+        if ($scheduleInstances) {
+            foreach ($instance in $scheduleInstances) {
+                # Only track assignments that have an end date (time-bounded/JIT)
+                if ($instance.EndDateTime) {
+                    # Extract the role assignment ID to match against regular assignments
+                    # The RoleAssignmentScheduleInstanceName contains the assignment identifier
+                    $assignmentId = $instance.RoleAssignmentScheduleId
+                    
+                    # Also try to match by the underlying role assignment ID if available
+                    if ($instance.OriginRoleAssignmentId) {
+                        $pimAssignments[$instance.OriginRoleAssignmentId] = @{
+                            PrincipalId = $instance.PrincipalId
+                            RoleDefinitionId = $instance.RoleDefinitionId
+                            Scope = $instance.Scope
+                            StartDateTime = $instance.StartDateTime
+                            EndDateTime = $instance.EndDateTime
+                            AssignmentType = $instance.AssignmentType
+                            MemberType = $instance.MemberType
+                        }
+                    }
+                    
+                    # Also store by schedule ID for backup matching
+                    if ($assignmentId) {
+                        $pimAssignments[$assignmentId] = @{
+                            PrincipalId = $instance.PrincipalId
+                            RoleDefinitionId = $instance.RoleDefinitionId
+                            Scope = $instance.Scope
+                            StartDateTime = $instance.StartDateTime
+                            EndDateTime = $instance.EndDateTime
+                            AssignmentType = $instance.AssignmentType
+                            MemberType = $instance.MemberType
+                        }
+                    }
+                    
+                    # Store by a composite key for more reliable matching
+                    $compositeKey = "$($instance.PrincipalId)|$($instance.RoleDefinitionId)|$($instance.Scope)"
+                    $pimAssignments[$compositeKey] = @{
+                        PrincipalId = $instance.PrincipalId
+                        RoleDefinitionId = $instance.RoleDefinitionId
+                        Scope = $instance.Scope
+                        StartDateTime = $instance.StartDateTime
+                        EndDateTime = $instance.EndDateTime
+                        AssignmentType = $instance.AssignmentType
+                        MemberType = $instance.MemberType
+                    }
+                }
+            }
+        }
+    }
+    catch {
+        # PIM might not be available or licensed - silently continue
+        # This is expected in environments without Azure AD P2/PIM
+        if ($_.Exception.Message -notmatch 'not found|not available|not licensed|403|Forbidden') {
+            Write-Verbose "PIM query warning: $($_.Exception.Message)"
+        }
+    }
+    
+    return $pimAssignments
+}
+
+function Test-IsPIMAssignment {
+    <#
+    .SYNOPSIS
+        Checks if a role assignment is a PIM/JIT time-bounded assignment.
+    .PARAMETER Assignment
+        The role assignment object to check.
+    .PARAMETER PIMAssignments
+        Hashtable of known PIM assignments from Get-PIMRoleAssignments.
+    .OUTPUTS
+        Boolean indicating if this is a PIM assignment.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        $Assignment,
+        
+        [Parameter(Mandatory = $true)]
+        [hashtable]$PIMAssignments
+    )
+    
+    # Check by assignment ID
+    if ($PIMAssignments.ContainsKey($Assignment.RoleAssignmentId)) {
+        return $true
+    }
+    
+    # Check by composite key (PrincipalId|RoleDefinitionId|Scope)
+    $compositeKey = "$($Assignment.ObjectId)|$($Assignment.RoleDefinitionId)|$($Assignment.Scope)"
+    if ($PIMAssignments.ContainsKey($compositeKey)) {
+        return $true
+    }
+    
+    return $false
+}
+
+function Get-RemediationInstructions {
+    <#
+    .SYNOPSIS
+        Generates remediation instructions for a drift issue.
+    .DESCRIPTION
+        Creates actionable remediation snippets including Terraform import blocks,
+        JSON entries for terraform.tfvars.json, and workflow instructions.
+    .PARAMETER DriftItem
+        The drift result object containing assignment details.
+    .PARAMETER DriftType
+        The type of drift (NEW_ASSIGNMENT, REMOVED_ASSIGNMENT, MODIFIED_ASSIGNMENT, CONDITION_MISMATCH).
+    .OUTPUTS
+        PSCustomObject with Remediation instructions.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        $DriftItem,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$DriftType
+    )
+    
+    $remediation = [PSCustomObject]@{
+        ImportBlock = $null
+        VarFileEntry = $null
+        AzureCLI = $null
+        PowerShell = $null
+        Instructions = $null
+    }
+    
+    # Generate a safe resource name for Terraform from the assignment
+    $safeResourceName = ($DriftItem.PrincipalDisplayName -replace '[^a-zA-Z0-9_]', '_').ToLower()
+    if ([string]::IsNullOrEmpty($safeResourceName)) {
+        $safeResourceName = "assignment_" + ($DriftItem.AssignmentId -replace '.*/', '')
+    }
+    $safeResourceName = $safeResourceName.Substring(0, [Math]::Min(50, $safeResourceName.Length))
+    
+    switch ($DriftType) {
+        "NEW_ASSIGNMENT" {
+            # For new assignments, provide instructions to add to Terraform
+            $remediation.ImportBlock = @"
+# Import existing role assignment to Terraform state
+import {
+  to = azurerm_role_assignment.$safeResourceName
+  id = "$($DriftItem.AssignmentId)"
+}
+"@
+            
+            $remediation.VarFileEntry = @{
+                resource_name = $safeResourceName
+                scope = $DriftItem.Scope
+                role_definition_name = $DriftItem.RoleName
+                principal_id = $DriftItem.PrincipalId
+                principal_display_name = $DriftItem.PrincipalDisplayName
+                principal_sign_in_name = $DriftItem.PrincipalSignInName
+                principal_type = $DriftItem.PrincipalType
+            }
+            
+            $remediation.AzureCLI = "az role assignment list --assignee `"$($DriftItem.PrincipalId)`" --scope `"$($DriftItem.Scope)`" --role `"$($DriftItem.RoleName)`""
+            
+            $remediation.PowerShell = "Get-AzRoleAssignment -ObjectId `"$($DriftItem.PrincipalId)`" -Scope `"$($DriftItem.Scope)`" -RoleDefinitionName `"$($DriftItem.RoleName)`""
+            
+            $remediation.Instructions = @"
+NEW ASSIGNMENT DETECTED: $($DriftItem.PrincipalDisplayName) was granted $($DriftItem.RoleName)
+
+To add to Terraform:
+1. Add the import block above to your import.tf file
+2. Add the variable entry to terraform.tfvars.json
+3. Run: terraform plan -generate-config-out=generated.tf
+4. Review generated configuration and merge into your main.tf
+5. Run: terraform apply
+6. Commit changes and create PR
+
+To REMOVE if unauthorized:
+  PowerShell: Remove-AzRoleAssignment -ObjectId "$($DriftItem.PrincipalId)" -Scope "$($DriftItem.Scope)" -RoleDefinitionName "$($DriftItem.RoleName)"
+  Azure CLI: az role assignment delete --assignee "$($DriftItem.PrincipalId)" --scope "$($DriftItem.Scope)" --role "$($DriftItem.RoleName)"
+"@
+        }
+        
+        "REMOVED_ASSIGNMENT" {
+            $remediation.VarFileEntry = @{
+                resource_name = $safeResourceName
+                scope = $DriftItem.Scope
+                role_definition_name = $DriftItem.RoleName
+                principal_id = $DriftItem.PrincipalId
+                principal_display_name = $DriftItem.PrincipalDisplayName
+                principal_type = $DriftItem.PrincipalType
+                status = "REMOVED - needs restoration or removal from baseline"
+            }
+            
+            $remediation.PowerShell = "New-AzRoleAssignment -ObjectId `"$($DriftItem.PrincipalId)`" -Scope `"$($DriftItem.Scope)`" -RoleDefinitionName `"$($DriftItem.RoleName)`""
+            
+            $remediation.AzureCLI = "az role assignment create --assignee `"$($DriftItem.PrincipalId)`" --scope `"$($DriftItem.Scope)`" --role `"$($DriftItem.RoleName)`""
+            
+            $remediation.Instructions = @"
+REMOVED ASSIGNMENT DETECTED: $($DriftItem.PrincipalDisplayName) lost $($DriftItem.RoleName)
+
+To RESTORE if removal was unauthorized:
+  PowerShell: $($remediation.PowerShell)
+  Azure CLI: $($remediation.AzureCLI)
+
+To UPDATE BASELINE if removal was intentional:
+1. Re-export baseline: .\Invoke-EntraAzureRBACCheck.ps1 -Mode Export -ExportPath "new-baseline.json"
+2. Review and commit the new baseline
+3. Remove the old assignment from your Terraform configuration
+"@
+        }
+        
+        "CONDITION_MISMATCH" {
+            $remediation.VarFileEntry = @{
+                resource_name = $safeResourceName
+                scope = $DriftItem.Scope
+                role_definition_name = $DriftItem.RoleName
+                principal_id = $DriftItem.PrincipalId
+                principal_display_name = $DriftItem.PrincipalDisplayName
+                condition_baseline = $DriftItem.ConditionBaseline
+                condition_current = $DriftItem.ConditionCurrent
+                condition_version_baseline = $DriftItem.ConditionVersionBaseline
+                condition_version_current = $DriftItem.ConditionVersionCurrent
+            }
+            
+            $remediation.PowerShell = @"
+# Get current assignment details
+`$assignment = Get-AzRoleAssignment -ObjectId "$($DriftItem.PrincipalId)" -Scope "$($DriftItem.Scope)" -RoleDefinitionName "$($DriftItem.RoleName)"
+
+# Update condition (restore baseline condition)
+Set-AzRoleAssignment -InputObject `$assignment -Condition '$($DriftItem.ConditionBaseline)' -ConditionVersion '$($DriftItem.ConditionVersionBaseline)'
+"@
+            
+            $remediation.Instructions = @"
+CONDITION MISMATCH DETECTED: $($DriftItem.PrincipalDisplayName) - $($DriftItem.RoleName)
+Issue: $($DriftItem.Issue)
+
+Baseline Condition: $(if ($DriftItem.ConditionBaseline) { $DriftItem.ConditionBaseline } else { "[none]" })
+Current Condition: $(if ($DriftItem.ConditionCurrent) { $DriftItem.ConditionCurrent } else { "[none]" })
+
+WARNING: Removing or modifying ABAC conditions can grant broader access than intended.
+
+To RESTORE baseline condition:
+$($remediation.PowerShell)
+
+To UPDATE BASELINE if change was intentional:
+1. Re-export baseline with current conditions
+2. Update Terraform configuration with new condition
+3. Commit and create PR
+"@
+        }
+        
+        "MODIFIED_ASSIGNMENT" {
+            $remediation.VarFileEntry = @{
+                resource_name = $safeResourceName
+                scope = $DriftItem.Scope
+                role_definition_name = $DriftItem.RoleName
+                principal_id = $DriftItem.PrincipalId
+                principal_display_name = $DriftItem.PrincipalDisplayName
+                changes = $DriftItem.Changes
+            }
+            
+            $remediation.Instructions = @"
+MODIFIED ASSIGNMENT DETECTED: $($DriftItem.PrincipalDisplayName) - $($DriftItem.RoleName)
+Changes: $($DriftItem.Changes)
+
+To INVESTIGATE:
+  PowerShell: Get-AzRoleAssignment -ObjectId "$($DriftItem.PrincipalId)" | Format-List *
+  
+To UPDATE BASELINE if change was intentional:
+1. Re-export baseline: .\Invoke-EntraAzureRBACCheck.ps1 -Mode Export
+2. Compare changes and commit new baseline
+"@
+        }
+        
+        "NEW_GROUP_MEMBER" {
+            $remediation.VarFileEntry = @{
+                group_name = $DriftItem.GroupName
+                group_id = $DriftItem.GroupId
+                group_roles = $DriftItem.GroupRoles
+                principal_id = $DriftItem.PrincipalId
+                principal_display_name = $DriftItem.PrincipalDisplayName
+                principal_sign_in_name = $DriftItem.PrincipalSignInName
+                principal_type = $DriftItem.PrincipalType
+            }
+            
+            $remediation.PowerShell = "Remove-AzADGroupMember -GroupObjectId `"$($DriftItem.GroupId)`" -MemberObjectId `"$($DriftItem.PrincipalId)`""
+            
+            $remediation.AzureCLI = "az ad group member remove --group `"$($DriftItem.GroupId)`" --member-id `"$($DriftItem.PrincipalId)`""
+            
+            $remediation.Instructions = @"
+NEW GROUP MEMBER DETECTED: $($DriftItem.PrincipalDisplayName) added to $($DriftItem.GroupName)
+Group Roles: $($DriftItem.GroupRoles)
+
+This user now has Azure RBAC access through group membership.
+
+To REMOVE if unauthorized:
+  PowerShell: $($remediation.PowerShell)
+  Azure CLI: $($remediation.AzureCLI)
+
+To UPDATE BASELINE if addition was authorized:
+1. Re-export baseline with -ExpandGroupMembers: .\Invoke-EntraAzureRBACCheck.ps1 -Mode Export -ExpandGroupMembers
+2. Review and commit the new baseline
+
+To INVESTIGATE group membership:
+  PowerShell: Get-AzADGroupMember -GroupObjectId "$($DriftItem.GroupId)" | Select-Object DisplayName, UserPrincipalName, Id
+"@
+        }
+        
+        "REMOVED_GROUP_MEMBER" {
+            $remediation.VarFileEntry = @{
+                group_name = $DriftItem.GroupName
+                group_id = $DriftItem.GroupId
+                group_roles = $DriftItem.GroupRoles
+                principal_id = $DriftItem.PrincipalId
+                principal_display_name = $DriftItem.PrincipalDisplayName
+                principal_sign_in_name = $DriftItem.PrincipalSignInName
+                principal_type = $DriftItem.PrincipalType
+                status = "REMOVED - needs restoration or baseline update"
+            }
+            
+            $remediation.PowerShell = "Add-AzADGroupMember -TargetGroupObjectId `"$($DriftItem.GroupId)`" -MemberObjectId `"$($DriftItem.PrincipalId)`""
+            
+            $remediation.AzureCLI = "az ad group member add --group `"$($DriftItem.GroupId)`" --member-id `"$($DriftItem.PrincipalId)`""
+            
+            $remediation.Instructions = @"
+REMOVED GROUP MEMBER DETECTED: $($DriftItem.PrincipalDisplayName) removed from $($DriftItem.GroupName)
+Group Roles: $($DriftItem.GroupRoles)
+
+This user lost Azure RBAC access through group membership removal.
+
+To RESTORE if removal was unauthorized:
+  PowerShell: $($remediation.PowerShell)
+  Azure CLI: $($remediation.AzureCLI)
+
+To UPDATE BASELINE if removal was authorized:
+1. Re-export baseline with -ExpandGroupMembers: .\Invoke-EntraAzureRBACCheck.ps1 -Mode Export -ExpandGroupMembers
+2. Review and commit the new baseline
+"@
+        }
+        
+        default {
+            $remediation.Instructions = "Review this drift issue and take appropriate action based on your organization's policies."
+        }
+    }
+    
+    return $remediation
 }
 
 function Get-GroupMembersRecursive {
@@ -1330,7 +1707,41 @@ function Export-RoleAssignments {
                     if (-not $IncludeInherited) {
                         $assignments = $assignments | Where-Object { $_.Scope -notmatch '/providers/Microsoft.Management/managementGroups/' }
                     }
-                    Write-Host "[+] Found $($assignments.Count) role assignment(s)" -ForegroundColor Green
+                    
+                    $excludedPIMCountThisSub = 0
+                    
+                    # Filter out PIM/JIT assignments if requested
+                    if ($ExcludePIM) {
+                        Write-Host "[*] Checking for PIM/JIT assignments to exclude..." -ForegroundColor Cyan
+                        $subscriptionScope = "/subscriptions/$($subscription.Id)"
+                        $pimAssignments = Get-PIMRoleAssignments -Scope $subscriptionScope
+                        
+                        if ($pimAssignments.Count -gt 0) {
+                            # Store PIM assignments for reference
+                            foreach ($key in $pimAssignments.Keys) {
+                                $script:PIMAssignmentIds[$key] = $pimAssignments[$key]
+                            }
+                            
+                            # Filter out PIM assignments
+                            $filteredAssignments = @()
+                            foreach ($assignment in $assignments) {
+                                if (-not (Test-IsPIMAssignment -Assignment $assignment -PIMAssignments $pimAssignments)) {
+                                    $filteredAssignments += $assignment
+                                }
+                                else {
+                                    $excludedPIMCountThisSub++
+                                    $script:ExcludedPIMCount++
+                                }
+                            }
+                            $assignments = $filteredAssignments
+                            
+                            if ($excludedPIMCountThisSub -gt 0) {
+                                Write-Host "[*] Excluded $excludedPIMCountThisSub PIM/JIT assignment(s)" -ForegroundColor Yellow
+                            }
+                        }
+                    }
+                    
+                    Write-Host "[+] Found $($assignments.Count) role assignment(s)$(if ($excludedPIMCountThisSub -gt 0) { " (after excluding $excludedPIMCountThisSub PIM)" })" -ForegroundColor Green
                     
                     # Track this subscription as processed
                     $subscriptionInfo = [PSCustomObject]@{
@@ -1340,6 +1751,7 @@ function Export-RoleAssignments {
                         TenantName = $tenant.Name
                         State = $subscription.State
                         RoleAssignmentCount = $assignments.Count
+                        ExcludedPIMCount = $excludedPIMCountThisSub
                         ProcessedAt = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
                     }
                     $processedSubscriptions += $subscriptionInfo
@@ -1422,6 +1834,9 @@ function Export-RoleAssignments {
     Write-Host "[+] Total tenants processed: $($tenantsToProcess.Count)" -ForegroundColor Green
     Write-Host "[+] Total subscriptions processed: $totalSubscriptionsProcessed" -ForegroundColor Green
     Write-Host "[+] Total role assignments collected: $script:TotalAssignments" -ForegroundColor Green
+    if ($ExcludePIM -and $script:ExcludedPIMCount -gt 0) {
+        Write-Host "[*] PIM/JIT assignments excluded: $($script:ExcludedPIMCount)" -ForegroundColor Yellow
+    }
     
     $exportFile = if ($ExportPath) { $ExportPath } else { "azure-rbac-baseline.json" }
     try {
@@ -1527,7 +1942,7 @@ function Export-RoleAssignments {
         # Build comprehensive export data with all tenant and subscription details
         $exportData = @{
             ExportDate = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
-            ExportVersion = "2.1"
+            ExportVersion = "2.3"
             Summary = @{
                 TotalTenants = $processedTenants.Count
                 TotalSubscriptions = $script:TotalSubscriptions
@@ -1536,6 +1951,8 @@ function Export-RoleAssignments {
                 SkippedTenants = $skippedTenants.Count
                 IncludeInherited = $IncludeInherited.IsPresent
                 IncludesExpandedGroups = ($ExpandGroupMembers -and $expandedGroupData -and $expandedGroupData.Count -gt 0)
+                ExcludePIM = $ExcludePIM.IsPresent
+                ExcludedPIMAssignments = $script:ExcludedPIMCount
             }
             ScopeStatistics = $scopeStats
             PrincipalStatistics = $principalStats
@@ -1819,7 +2236,41 @@ function Invoke-DriftDetection {
                     if (-not $IncludeInherited) {
                         $assignments = $assignments | Where-Object { $_.Scope -notmatch '/providers/Microsoft.Management/managementGroups/' }
                     }
-                    Write-Host "[+] Found $($assignments.Count) current assignment(s) at all scopes" -ForegroundColor Green
+                    
+                    $excludedPIMCountThisSub = 0
+                    
+                    # Filter out PIM/JIT assignments if requested
+                    if ($ExcludePIM) {
+                        Write-Host "[*] Checking for PIM/JIT assignments to exclude..." -ForegroundColor Cyan
+                        $subscriptionScope = "/subscriptions/$($subscription.Id)"
+                        $pimAssignments = Get-PIMRoleAssignments -Scope $subscriptionScope
+                        
+                        if ($pimAssignments.Count -gt 0) {
+                            # Store PIM assignments for reference
+                            foreach ($key in $pimAssignments.Keys) {
+                                $script:PIMAssignmentIds[$key] = $pimAssignments[$key]
+                            }
+                            
+                            # Filter out PIM assignments
+                            $filteredAssignments = @()
+                            foreach ($assignment in $assignments) {
+                                if (-not (Test-IsPIMAssignment -Assignment $assignment -PIMAssignments $pimAssignments)) {
+                                    $filteredAssignments += $assignment
+                                }
+                                else {
+                                    $excludedPIMCountThisSub++
+                                    $script:ExcludedPIMCount++
+                                }
+                            }
+                            $assignments = $filteredAssignments
+                            
+                            if ($excludedPIMCountThisSub -gt 0) {
+                                Write-Host "[*] Excluded $excludedPIMCountThisSub PIM/JIT assignment(s)" -ForegroundColor Yellow
+                            }
+                        }
+                    }
+                    
+                    Write-Host "[+] Found $($assignments.Count) current assignment(s) at all scopes$(if ($excludedPIMCountThisSub -gt 0) { " (after excluding $excludedPIMCountThisSub PIM)" })" -ForegroundColor Green
                     
                     # Track subscription
                     $processedSubscriptionsForDrift += @{
@@ -1827,6 +2278,7 @@ function Invoke-DriftDetection {
                         SubscriptionName = $subscription.Name
                         TenantId = $tenant.Id
                         AssignmentCount = $assignments.Count
+                        ExcludedPIMCount = $excludedPIMCountThisSub
                     }
                     
                     foreach ($assignment in $assignments) {
@@ -1885,12 +2337,17 @@ function Invoke-DriftDetection {
     Write-Host "[+] Tenants scanned: $($processedTenantsForDrift.Count)" -ForegroundColor Green
     Write-Host "[+] Subscriptions scanned: $totalSubscriptionsScanned" -ForegroundColor Green
     Write-Host "[+] Current role assignments found: $($currentAssignments.Count)" -ForegroundColor Green
+    if ($ExcludePIM -and $script:ExcludedPIMCount -gt 0) {
+        Write-Host "[*] PIM/JIT assignments excluded: $($script:ExcludedPIMCount)" -ForegroundColor Yellow
+    }
     
     # Store for export
     $script:DriftScanInfo = @{
         TenantsScanned = $processedTenantsForDrift
         SubscriptionsScanned = $processedSubscriptionsForDrift
         TotalCurrentAssignments = $currentAssignments.Count
+        ExcludePIM = $ExcludePIM.IsPresent
+        ExcludedPIMAssignments = $script:ExcludedPIMCount
         ScanTimestamp = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
     }
     Write-Host "`n[*] Analyzing drift..." -ForegroundColor Cyan
@@ -1905,7 +2362,7 @@ function Invoke-DriftDetection {
     foreach ($current in $currentAssignments) {
         if (-not $baselineHash.ContainsKey($current.AssignmentId)) {
             $risk = if ($current.RoleDefinitionName -match "Owner|Contributor|Administrator") { "CRITICAL" } else { "HIGH" }
-            $script:DriftResults.NewAssignments += [PSCustomObject]@{
+            $driftItem = [PSCustomObject]@{
                 DriftType = "NEW_ASSIGNMENT"
                 RiskLevel = $risk
                 TenantName = $current.TenantName
@@ -1914,13 +2371,17 @@ function Invoke-DriftDetection {
                 Scope = $current.Scope
                 ScopeType = $current.ScopeType
                 RoleName = $current.RoleDefinitionName
+                PrincipalId = $current.PrincipalId
                 PrincipalType = $current.PrincipalType
                 PrincipalDisplayName = $current.PrincipalDisplayName
                 PrincipalSignInName = $current.PrincipalSignInName
                 AssignmentId = $current.AssignmentId
                 Issue = "New role assignment detected - not in baseline"
                 Recommendation = "Review and verify this assignment was authorized"
+                Remediation = $null
             }
+            $driftItem.Remediation = Get-RemediationInstructions -DriftItem $driftItem -DriftType "NEW_ASSIGNMENT"
+            $script:DriftResults.NewAssignments += $driftItem
         }
     }
     
@@ -1929,7 +2390,7 @@ function Invoke-DriftDetection {
     foreach ($baseline in $script:BaselineAssignments) {
         if (-not $currentHash.ContainsKey($baseline.AssignmentId)) {
             $risk = if ($baseline.RoleDefinitionName -match "Owner|Contributor|Administrator") { "HIGH" } else { "MEDIUM" }
-            $script:DriftResults.RemovedAssignments += [PSCustomObject]@{
+            $driftItem = [PSCustomObject]@{
                 DriftType = "REMOVED_ASSIGNMENT"
                 RiskLevel = $risk
                 TenantName = $baseline.TenantName
@@ -1938,13 +2399,17 @@ function Invoke-DriftDetection {
                 Scope = $baseline.Scope
                 ScopeType = $baseline.ScopeType
                 RoleName = $baseline.RoleDefinitionName
+                PrincipalId = $baseline.PrincipalId
                 PrincipalType = $baseline.PrincipalType
                 PrincipalDisplayName = $baseline.PrincipalDisplayName
                 PrincipalSignInName = $baseline.PrincipalSignInName
                 AssignmentId = $baseline.AssignmentId
                 Issue = "Role assignment removed since baseline"
                 Recommendation = "Verify this removal was authorized"
+                Remediation = $null
             }
+            $driftItem.Remediation = Get-RemediationInstructions -DriftItem $driftItem -DriftType "REMOVED_ASSIGNMENT"
+            $script:DriftResults.RemovedAssignments += $driftItem
         }
     }
     
@@ -1959,7 +2424,7 @@ function Invoke-DriftDetection {
             if ($current.PrincipalId -ne $baseline.PrincipalId) { $changes += "Principal changed" }
             if ($changes.Count -gt 0) {
                 $risk = if ($current.RoleDefinitionName -match "Owner|Contributor|Administrator") { "CRITICAL" } else { "HIGH" }
-                $script:DriftResults.ModifiedAssignments += [PSCustomObject]@{
+                $driftItem = [PSCustomObject]@{
                     DriftType = "MODIFIED_ASSIGNMENT"
                     RiskLevel = $risk
                     TenantName = $current.TenantName
@@ -1968,13 +2433,77 @@ function Invoke-DriftDetection {
                     Scope = $current.Scope
                     ScopeType = $current.ScopeType
                     RoleName = $current.RoleDefinitionName
+                    PrincipalId = $current.PrincipalId
                     PrincipalType = $current.PrincipalType
                     PrincipalDisplayName = $current.PrincipalDisplayName
+                    PrincipalSignInName = $current.PrincipalSignInName
                     AssignmentId = $current.AssignmentId
                     Changes = ($changes -join "; ")
                     Issue = "Role assignment modified since baseline"
                     Recommendation = "Review these changes"
+                    Remediation = $null
                 }
+                $driftItem.Remediation = Get-RemediationInstructions -DriftItem $driftItem -DriftType "MODIFIED_ASSIGNMENT"
+                $script:DriftResults.ModifiedAssignments += $driftItem
+            }
+        }
+    }
+    
+    # Find ABAC condition mismatches (separate from other modifications)
+    Write-Host "[*] Checking for ABAC condition mismatches..." -ForegroundColor Cyan
+    foreach ($current in $currentAssignments) {
+        if ($baselineHash.ContainsKey($current.AssignmentId)) {
+            $baseline = $baselineHash[$current.AssignmentId]
+            
+            # Normalize null/empty conditions for comparison
+            $currentCondition = if ([string]::IsNullOrWhiteSpace($current.Condition)) { $null } else { $current.Condition.Trim() }
+            $baselineCondition = if ([string]::IsNullOrWhiteSpace($baseline.Condition)) { $null } else { $baseline.Condition.Trim() }
+            $currentConditionVersion = if ([string]::IsNullOrWhiteSpace($current.ConditionVersion)) { $null } else { $current.ConditionVersion }
+            $baselineConditionVersion = if ([string]::IsNullOrWhiteSpace($baseline.ConditionVersion)) { $null } else { $baseline.ConditionVersion }
+            
+            # Check for condition mismatch
+            $conditionChanged = $currentCondition -ne $baselineCondition
+            $versionChanged = $currentConditionVersion -ne $baselineConditionVersion
+            
+            if ($conditionChanged -or $versionChanged) {
+                # Determine change type for issue description
+                $changeDescription = if ($baselineCondition -and -not $currentCondition) {
+                    "ABAC condition removed"
+                } elseif (-not $baselineCondition -and $currentCondition) {
+                    "ABAC condition added"
+                } elseif ($conditionChanged) {
+                    "ABAC condition modified"
+                } else {
+                    "ABAC condition version changed"
+                }
+                
+                # ABAC condition changes are high risk as they can grant broader access
+                $risk = if ($current.RoleDefinitionName -match "Owner|Contributor|Administrator") { "CRITICAL" } else { "HIGH" }
+                
+                $driftItem = [PSCustomObject]@{
+                    DriftType = "CONDITION_MISMATCH"
+                    RiskLevel = $risk
+                    TenantName = $current.TenantName
+                    TenantId = $current.TenantId
+                    SubscriptionName = $current.SubscriptionName
+                    Scope = $current.Scope
+                    ScopeType = $current.ScopeType
+                    RoleName = $current.RoleDefinitionName
+                    PrincipalId = $current.PrincipalId
+                    PrincipalType = $current.PrincipalType
+                    PrincipalDisplayName = $current.PrincipalDisplayName
+                    PrincipalSignInName = $current.PrincipalSignInName
+                    AssignmentId = $current.AssignmentId
+                    ConditionBaseline = $baselineCondition
+                    ConditionCurrent = $currentCondition
+                    ConditionVersionBaseline = $baselineConditionVersion
+                    ConditionVersionCurrent = $currentConditionVersion
+                    Issue = $changeDescription
+                    Recommendation = "Review ABAC condition change - removing or modifying conditions can grant broader access"
+                    Remediation = $null
+                }
+                $driftItem.Remediation = Get-RemediationInstructions -DriftItem $driftItem -DriftType "CONDITION_MISMATCH"
+                $script:DriftResults.ConditionMismatchAssignments += $driftItem
             }
         }
     }
@@ -2018,7 +2547,7 @@ function Invoke-DriftDetection {
                         $risk = if ($hasHighPrivRole) { "CRITICAL" } else { "HIGH" }
                         $roleNames = ($groupRoles | Select-Object -ExpandProperty RoleDefinitionName -Unique) -join ", "
                         
-                        $script:DriftResults.NewGroupMembers += [PSCustomObject]@{
+                        $driftItem = [PSCustomObject]@{
                             DriftType = "NEW_GROUP_MEMBER"
                             RiskLevel = $risk
                             GroupName = $groupName
@@ -2030,7 +2559,10 @@ function Invoke-DriftDetection {
                             PrincipalSignInName = $member.PrincipalSignInName
                             Issue = "New user added to group with Azure RBAC access"
                             Recommendation = "Verify this user was authorized to be added to this privileged group"
+                            Remediation = $null
                         }
+                        $driftItem.Remediation = Get-RemediationInstructions -DriftItem $driftItem -DriftType "NEW_GROUP_MEMBER"
+                        $script:DriftResults.NewGroupMembers += $driftItem
                         Write-Host "    [!] NEW member in $groupName : $($member.PrincipalDisplayName)" -ForegroundColor Yellow
                     }
                 }
@@ -2043,7 +2575,7 @@ function Invoke-DriftDetection {
                         $risk = if ($hasHighPrivRole) { "HIGH" } else { "MEDIUM" }
                         $roleNames = ($groupRoles | Select-Object -ExpandProperty RoleDefinitionName -Unique) -join ", "
                         
-                        $script:DriftResults.RemovedGroupMembers += [PSCustomObject]@{
+                        $driftItem = [PSCustomObject]@{
                             DriftType = "REMOVED_GROUP_MEMBER"
                             RiskLevel = $risk
                             GroupName = $groupName
@@ -2055,7 +2587,10 @@ function Invoke-DriftDetection {
                             PrincipalSignInName = $member.PrincipalSignInName
                             Issue = "User removed from group with Azure RBAC access"
                             Recommendation = "Verify this removal was authorized"
+                            Remediation = $null
                         }
+                        $driftItem.Remediation = Get-RemediationInstructions -DriftItem $driftItem -DriftType "REMOVED_GROUP_MEMBER"
+                        $script:DriftResults.RemovedGroupMembers += $driftItem
                         Write-Host "    [!] REMOVED member from $groupName : $($member.PrincipalDisplayName)" -ForegroundColor Yellow
                     }
                 }
@@ -2086,11 +2621,15 @@ function Invoke-DriftDetection {
         Write-Host "[*] To track group membership changes, re-export baseline with -ExpandGroupMembers" -ForegroundColor Yellow
     }
     
-    $total = $script:DriftResults.NewAssignments.Count + $script:DriftResults.RemovedAssignments.Count + $script:DriftResults.ModifiedAssignments.Count + $script:DriftResults.NewGroupMembers.Count + $script:DriftResults.RemovedGroupMembers.Count
+    $total = $script:DriftResults.NewAssignments.Count + $script:DriftResults.RemovedAssignments.Count + $script:DriftResults.ModifiedAssignments.Count + $script:DriftResults.ConditionMismatchAssignments.Count + $script:DriftResults.NewGroupMembers.Count + $script:DriftResults.RemovedGroupMembers.Count
     $membershipDrift = $script:DriftResults.NewGroupMembers.Count + $script:DriftResults.RemovedGroupMembers.Count
+    $conditionDrift = $script:DriftResults.ConditionMismatchAssignments.Count
     
     Write-Host "`n[+] Drift analysis complete!" -ForegroundColor Green
     Write-Host "[*] Direct Assignments - New: $($script:DriftResults.NewAssignments.Count) | Removed: $($script:DriftResults.RemovedAssignments.Count) | Modified: $($script:DriftResults.ModifiedAssignments.Count)" -ForegroundColor $(if(($script:DriftResults.NewAssignments.Count + $script:DriftResults.RemovedAssignments.Count + $script:DriftResults.ModifiedAssignments.Count) -gt 0){"Yellow"}else{"Green"})
+    if ($conditionDrift -gt 0) {
+        Write-Host "[*] ABAC Conditions - Mismatched: $conditionDrift" -ForegroundColor Yellow
+    }
     if ($script:BaselineHasExpandedGroups) {
         Write-Host "[*] Group Membership - New members: $($script:DriftResults.NewGroupMembers.Count) | Removed members: $($script:DriftResults.RemovedGroupMembers.Count)" -ForegroundColor $(if($membershipDrift -gt 0){"Yellow"}else{"Green"})
     }
@@ -2106,6 +2645,7 @@ function Show-DriftMatrixResults {
     $allDrift += $script:DriftResults.NewAssignments
     $allDrift += $script:DriftResults.RemovedAssignments
     $allDrift += $script:DriftResults.ModifiedAssignments
+    $allDrift += $script:DriftResults.ConditionMismatchAssignments
     $allDrift += $script:DriftResults.NewGroupMembers
     $allDrift += $script:DriftResults.RemovedGroupMembers
 
@@ -2175,6 +2715,14 @@ function Show-DriftMatrixResults {
     Write-Host $script:DriftResults.RemovedAssignments.Count -ForegroundColor Yellow
     Write-Host "  Modified assignments: " -NoNewline -ForegroundColor White
     Write-Host $script:DriftResults.ModifiedAssignments.Count -ForegroundColor Yellow
+    Write-Host "  Condition mismatches: " -NoNewline -ForegroundColor White
+    Write-Host $script:DriftResults.ConditionMismatchAssignments.Count -ForegroundColor Yellow
+    if ($script:DriftResults.NewGroupMembers.Count -gt 0 -or $script:DriftResults.RemovedGroupMembers.Count -gt 0) {
+        Write-Host "  New group members: " -NoNewline -ForegroundColor White
+        Write-Host $script:DriftResults.NewGroupMembers.Count -ForegroundColor Yellow
+        Write-Host "  Removed group members: " -NoNewline -ForegroundColor White
+        Write-Host $script:DriftResults.RemovedGroupMembers.Count -ForegroundColor Yellow
+    }
     
     # Group by subscription
     $bySubscription = $allDrift | Group-Object SubscriptionName | Sort-Object Count -Descending
@@ -2218,6 +2766,7 @@ function Show-DriftResults {
     $allDrift += $script:DriftResults.NewAssignments
     $allDrift += $script:DriftResults.RemovedAssignments
     $allDrift += $script:DriftResults.ModifiedAssignments
+    $allDrift += $script:DriftResults.ConditionMismatchAssignments
     $allDrift += $script:DriftResults.NewGroupMembers
     $allDrift += $script:DriftResults.RemovedGroupMembers
 
@@ -2231,6 +2780,7 @@ function Show-DriftResults {
     Write-Host "  New: $($script:DriftResults.NewAssignments.Count)" -ForegroundColor Yellow
     Write-Host "  Removed: $($script:DriftResults.RemovedAssignments.Count)" -ForegroundColor Yellow
     Write-Host "  Modified: $($script:DriftResults.ModifiedAssignments.Count)" -ForegroundColor Yellow
+    Write-Host "  Condition Mismatch: $($script:DriftResults.ConditionMismatchAssignments.Count)" -ForegroundColor Yellow
     
     Write-Host "`n" + ("-" * 80) -ForegroundColor Cyan
     
@@ -2241,8 +2791,18 @@ function Show-DriftResults {
         Write-Host "  Subscription: $($drift.SubscriptionName)" -ForegroundColor Gray
         Write-Host "  Role: $($drift.RoleName)" -ForegroundColor Gray
         Write-Host "  Principal: $($drift.PrincipalDisplayName) ($($drift.PrincipalType))" -ForegroundColor Gray
+        if ($drift.PrincipalSignInName) {
+            Write-Host "  Sign-in Name: $($drift.PrincipalSignInName)" -ForegroundColor Gray
+        }
         Write-Host "  Scope: $($drift.ScopeType)" -ForegroundColor Gray
         Write-Host "  Issue: $($drift.Issue)" -ForegroundColor $color
+        
+        # Show condition details for CONDITION_MISMATCH
+        if ($drift.DriftType -eq "CONDITION_MISMATCH") {
+            Write-Host "  Condition (Baseline): $(if ($drift.ConditionBaseline) { $drift.ConditionBaseline.Substring(0, [Math]::Min(80, $drift.ConditionBaseline.Length)) + '...' } else { '[none]' })" -ForegroundColor Gray
+            Write-Host "  Condition (Current): $(if ($drift.ConditionCurrent) { $drift.ConditionCurrent.Substring(0, [Math]::Min(80, $drift.ConditionCurrent.Length)) + '...' } else { '[none]' })" -ForegroundColor Gray
+        }
+        
         Write-Host "  Recommendation: $($drift.Recommendation)" -ForegroundColor Cyan
     }
     
@@ -2400,6 +2960,7 @@ function Export-DriftResults {
     $allDrift += $script:DriftResults.NewAssignments
     $allDrift += $script:DriftResults.RemovedAssignments
     $allDrift += $script:DriftResults.ModifiedAssignments
+    $allDrift += $script:DriftResults.ConditionMismatchAssignments
     $allDrift += $script:DriftResults.NewGroupMembers
     $allDrift += $script:DriftResults.RemovedGroupMembers
 
@@ -2407,7 +2968,7 @@ function Export-DriftResults {
     try {
         $driftReport = @{
             ReportDate = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
-            ReportVersion = "2.1"
+            ReportVersion = "2.3"
             BaselineFile = $BaselinePath
             DriftDetected = ($allDrift.Count -gt 0)
             Summary = @{
@@ -2415,12 +2976,15 @@ function Export-DriftResults {
                 NewAssignments = $script:DriftResults.NewAssignments.Count
                 RemovedAssignments = $script:DriftResults.RemovedAssignments.Count
                 ModifiedAssignments = $script:DriftResults.ModifiedAssignments.Count
+                ConditionMismatchAssignments = $script:DriftResults.ConditionMismatchAssignments.Count
                 NewGroupMembers = $script:DriftResults.NewGroupMembers.Count
                 RemovedGroupMembers = $script:DriftResults.RemovedGroupMembers.Count
                 CriticalIssues = ($allDrift | Where-Object { $_.RiskLevel -eq 'CRITICAL' }).Count
                 HighIssues = ($allDrift | Where-Object { $_.RiskLevel -eq 'HIGH' }).Count
                 MediumIssues = ($allDrift | Where-Object { $_.RiskLevel -eq 'MEDIUM' }).Count
                 BaselineHadExpandedGroups = $script:BaselineHasExpandedGroups
+                ExcludePIM = $ExcludePIM.IsPresent
+                ExcludedPIMAssignments = $script:ExcludedPIMCount
             }
             ScanInfo = $script:DriftScanInfo
             BaselineInfo = @{
@@ -2432,6 +2996,9 @@ function Export-DriftResults {
                 NewAssignments = $script:DriftResults.NewAssignments
                 RemovedAssignments = $script:DriftResults.RemovedAssignments
                 ModifiedAssignments = $script:DriftResults.ModifiedAssignments
+            }
+            ConditionDrift = @{
+                ConditionMismatchAssignments = $script:DriftResults.ConditionMismatchAssignments
             }
             GroupMembershipDrift = @{
                 NewMembers = $script:DriftResults.NewGroupMembers
