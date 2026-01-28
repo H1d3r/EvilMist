@@ -34,7 +34,7 @@ Comprehensive Azure Entra ID (Azure AD) user enumeration and security assessment
 
 ### MFA Security Check
 
-Focused security assessment tool to identify Azure Entra ID users without Multi-Factor Authentication (MFA) enabled. Includes advanced features for shared mailbox detection and sign-in activity analysis.
+Focused security assessment tool to identify Azure Entra ID users without Multi-Factor Authentication (MFA) enabled. Includes advanced features for shared mailbox detection and sign-in activity analysis..
 
 **Key Features:**
 - **MFA Detection** - Identifies users without strong authentication methods
