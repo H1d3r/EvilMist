@@ -142,7 +142,7 @@ Comprehensive security assessment tool to identify Azure Entra ID users with acc
 .\Invoke-EvilMist.ps1 -Script EntraMFACheck -Matrix -OnlyNoMFA
 ```
 
-**Available scripts:** EntraEnum, EntraRecon, EntraMFACheck, EntraGuestCheck, EntraAppAccess, EntraRoleCheck, EntraServicePrincipalCheck, EntraConditionalAccessCheck, EntraAdminUnitCheck, EntraStaleAccountCheck, EntraDeviceCheck, EntraSSPRCheck, EntraPasswordPolicyCheck, EntraLegacyAuthCheck, EntraLicenseCheck, EntraDirectorySyncCheck, EntraPowerPlatformCheck, EntraGroupCheck, EntraApplicationCheck, EntraAttackPathCheck, EntraAzureRBACCheck, EntraOAuthConsentCheck, EntraSignInRiskCheck, EntraPIMCheck, EntraKeyVaultCheck, EntraStorageAccountCheck, EntraNetworkSecurityCheck, EntraManagedIdentityCheck, EntraExchangeCheck, EntraSharePointCheck, EntraTeamsCheck, EntraAzureAttackPathCheck, EntraReport, EntraComplianceCheck
+**Available scripts:** EntraEnum, EntraRecon, EntraMFACheck, EntraGuestCheck, EntraAppAccess, EntraRoleCheck, EntraServicePrincipalCheck, EntraConditionalAccessCheck, EntraAdminUnitCheck, EntraStaleAccountCheck, EntraDeviceCheck, EntraSSPRCheck, EntraPasswordPolicyCheck, EntraLegacyAuthCheck, EntraLicenseCheck, EntraDirectorySyncCheck, EntraPowerPlatformCheck, EntraGroupCheck, EntraApplicationCheck, EntraAttackPathCheck, EntraAzureRBACCheck, EntraOAuthConsentCheck, EntraSignInRiskCheck, EntraPIMCheck, EntraKeyVaultCheck, EntraStorageAccountCheck, EntraNetworkSecurityCheck, EntraManagedIdentityCheck, EntraExchangeCheck, EntraSharePointCheck, EntraTeamsCheck, EntraAzureAttackPathCheck, EntraReport, EntraComplianceCheck, SharePointEnum
 
 ### Unauthenticated Entra ID Enumeration (PowerShell)
 
@@ -150,19 +150,19 @@ Comprehensive security assessment tool to identify Azure Entra ID users with acc
 
 ```powershell
 # Basic domain enumeration (TenantInfo, DomainRealm, DNS)
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com
 
 # Check if email exists
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Email admin@contoso.com -UserEnum
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Email admin@example.com -UserEnum
 
 # Bulk user enumeration from file
 .\Invoke-EvilMist.ps1 -Script EntraEnum -EmailList users.txt -UserEnum -Throttle 1
 
 # Full enumeration with export
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -All -ExportPath results.json
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -All -ExportPath results.json
 
 # Stealth mode
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -All -EnableStealth
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -All -EnableStealth
 ```
 
 📖 **Full documentation:** [EntraEnum-PS1.md](docs/EntraEnum-PS1.md)
@@ -1339,6 +1339,45 @@ Comprehensive SharePoint Online security assessment tool to identify oversharing
 
 ---
 
+### SharePoint Online Enumeration
+
+Authenticated SharePoint Online search and file download tool using the SharePoint REST API. Enables red-team operators to discover and exfiltrate sensitive documents during authorized penetration tests. PowerShell port of [ElephantPoint](https://github.com/nettitude/ElephantPoint) (Nettitude).
+
+```powershell
+# Zero-config search — auto-connects, auto-detects SharePoint domain
+.\Invoke-EvilMist.ps1 -Script SharePointEnum -Query "password"
+
+# Device code authentication (for headless terminals)
+.\Invoke-EvilMist.ps1 -Script SharePointEnum -UseDeviceCode -Query "credentials"
+
+# Direct bearer token from ROADtools/TokenTactics
+.\Invoke-EvilMist.ps1 -Script SharePointEnum -SPOUrl example.sharepoint.com -Token $token -Query "confidential"
+
+# Download file as Base64 for C2 exfiltration
+.\Invoke-EvilMist.ps1 -Script SharePointEnum -SPOUrl example.sharepoint.com -Token $token -FileUrl "/sites/hr/Shared Documents/salaries.xlsx" -Base64
+
+# Stealth search with matrix output and JSON export
+.\Invoke-EvilMist.ps1 -Script SharePointEnum -Query "budget" -EnableStealth -QuietStealth -Matrix -ExportPath "results.json"
+```
+
+📖 **Full documentation:** [SharePointEnum-PS1.md](docs/SharePointEnum-PS1.md)
+
+**Key Features:**
+- **Full-Text Search** - Keyword search across all SharePoint document libraries
+- **FQL Support** - Faceted Query Language for advanced/surgical targeting
+- **Refinement Filters** - Filter by file type, author, date, site
+- **File Download** - Save to disk or Base64-encode for C2 exfiltration
+- **Auto-Detection** - Automatically detects SharePoint domain from Azure session
+- **Smart Auth Fallback** - Validates token against SharePoint REST API; falls back through Azure CLI and MSAL device code flow if the session token lacks SharePoint permissions
+- **Stealth Mode** - Configurable delays, jitter, and throttle handling
+- **Export Options** - CSV/JSON with search metadata and summary
+
+| Version | Documentation | File |
+|---------|---------------|------|
+| PowerShell | [SharePointEnum-PS1.md](docs/SharePointEnum-PS1.md) | `scripts/powershell/Invoke-SharePointEnum.ps1` |
+
+---
+
 ### Teams Security Check
 
 Comprehensive Microsoft Teams security assessment tool to audit collaboration security settings. Identifies external access risks, guest policies, meeting security gaps, and app permission issues.
@@ -1553,6 +1592,7 @@ Comprehensive compliance assessment tool that evaluates Azure Entra ID security 
 | [EntraAzureAttackPathCheck-PS1.md](docs/EntraAzureAttackPathCheck-PS1.md) | Azure Cross-Service Attack Path Analysis documentation including VM to Key Vault paths, managed identity privilege escalation, storage lateral movement, custom role vulnerabilities, cross-subscription paths, management group inheritance, attack narratives, and risk assessment |
 | [EntraReport-PS1.md](docs/EntraReport-PS1.md) | Consolidated Security Report Generator documentation including multi-check execution, HTML executive dashboard, security score calculation, remediation priority matrix, trend analysis with baseline comparison, quick scan and comprehensive scan modes, and JSON baseline export |
 | [EntraComplianceCheck-PS1.md](docs/EntraComplianceCheck-PS1.md) | Compliance Assessment documentation including CIS Azure Benchmark mapping, NIST 800-53 control mapping, SOC 2 Trust Service Criteria, ISO 27001 controls, GDPR indicators, compliance scoring, control family filtering, and executive reporting |
+| [SharePointEnum-PS1.md](docs/SharePointEnum-PS1.md) | SharePoint Online Enumeration documentation including REST API search, FQL queries, refinement filters, file download (disk and Base64), auto-detection, smart auth fallback (session token validation, Azure CLI fallback, MSAL device code flow), stealth mode, and export options |
 
 ---
 
@@ -1788,6 +1828,7 @@ All scripts support the same core authentication methods, with slight variations
 |--------|--------|----------------|
 | EntraExchangeCheck | ExchangeOnlineManagement | `Connect-ExchangeOnline` (requires Exchange Administrator role) |
 | EntraSharePointCheck | Microsoft.Online.SharePoint.PowerShell | `Connect-SPOService` to SharePoint Admin URL (requires SharePoint Administrator role) |
+| SharePointEnum | Az.Accounts (optional) | Smart fallback: Azure session token → Azure CLI → MSAL device code flow (Microsoft Office client ID) |
 | EntraTeamsCheck | MicrosoftTeams | `Connect-MicrosoftTeams` (requires Teams Administrator role) |
 
 ---
@@ -1844,6 +1885,7 @@ These scripts use Azure PowerShell (`Az` module) and require Azure RBAC permissi
 |--------|--------|---------------------------|
 | **Invoke-EntraExchangeCheck** | ExchangeOnlineManagement | Exchange Administrator or equivalent. Required for: `Get-InboxRule`, `Get-TransportRule`, `Get-MailboxPermission`, `Get-Mailbox` |
 | **Invoke-EntraSharePointCheck** | Microsoft.Online.SharePoint.PowerShell | SharePoint Administrator or equivalent. Required for: `Get-SPOTenant`, `Get-SPOSite`, sharing configuration cmdlets |
+| **Invoke-SharePointEnum** | Az.Accounts (optional) | Any user with SharePoint access. Uses SharePoint REST Search API with delegated permissions via Azure session, Azure CLI, or MSAL device code flow |
 | **Invoke-EntraTeamsCheck** | MicrosoftTeams | Teams Administrator or equivalent. Required for: `Get-CsTenantFederationConfiguration`, `Get-CsTeamsMeetingPolicy`, `Get-CsTeamsClientConfiguration`, `Get-Team` |
 
 ---

@@ -42,6 +42,7 @@
     - EntraAzureAttackPathCheck
     - EntraReport
     - EntraComplianceCheck
+    - SharePointEnum
 
 .PARAMETER List
     List all available scripts and exit.
@@ -108,6 +109,7 @@ $AvailableScripts = @{
     'EntraAzureAttackPathCheck' = 'Invoke-EntraAzureAttackPathCheck.ps1'
     'EntraReport' = 'Invoke-EntraReport.ps1'
     'EntraComplianceCheck' = 'Invoke-EntraComplianceCheck.ps1'
+    'SharePointEnum' = 'Invoke-SharePointEnum.ps1'
 }
 
 # Script descriptions for display
@@ -146,6 +148,7 @@ $ScriptDescriptions = @{
     'EntraAzureAttackPathCheck' = 'Cross-service Azure attack path analysis - VM to Key Vault, privilege escalation, lateral movement'
     'EntraReport' = 'Consolidated HTML security report generator - executive dashboard and remediation matrix'
     'EntraComplianceCheck' = 'Compliance assessment with CIS/NIST/SOC2/ISO27001/GDPR benchmark mapping'
+    'SharePointEnum' = 'SharePoint Online search and file download - authenticated enumeration via REST API'
 }
 
 function Show-AvailableScripts {

@@ -236,7 +236,7 @@ Specify exactly which checks to run:
 ASSESSMENT SUMMARY
 ============================================================
 
-Tenant: Contoso Corporation
+Tenant: example Corporation
 Checks Run: 6
 Total Findings: 25
 

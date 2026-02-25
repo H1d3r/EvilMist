@@ -160,11 +160,11 @@
     # Runs default enumeration (TenantInfo, DomainRealm, DnsEnum)
 
 .EXAMPLE
-    .\Invoke-EntraEnum.ps1 -Domain contoso.com -All
+    .\Invoke-EntraEnum.ps1 -Domain example.com -All
     # Runs all enumeration methods
 
 .EXAMPLE
-    .\Invoke-EntraEnum.ps1 -Email test@contoso.com -UserEnum
+    .\Invoke-EntraEnum.ps1 -Email test@example.com -UserEnum
     # Checks if a single user exists
 
 .EXAMPLE
@@ -172,31 +172,31 @@
     # Bulk user enumeration with 1 second delay
 
 .EXAMPLE
-    .\Invoke-EntraEnum.ps1 -Domain contoso.com -PortScan -Ports 443,80,3389
+    .\Invoke-EntraEnum.ps1 -Domain example.com -PortScan -Ports 443,80,3389
     # Scan specific ports
 
 .EXAMPLE
-    .\Invoke-EntraEnum.ps1 -Domain contoso.com -All -ExportPath results.json
+    .\Invoke-EntraEnum.ps1 -Domain example.com -All -ExportPath results.json
     # Export all results to JSON
 
 .EXAMPLE
-    .\Invoke-EntraEnum.ps1 -EmailList users.txt -OneDriveEnum -TenantName contoso
+    .\Invoke-EntraEnum.ps1 -EmailList users.txt -OneDriveEnum -TenantName example
     # Silent user enumeration via OneDrive (completely undetectable)
 
 .EXAMPLE
-    .\Invoke-EntraEnum.ps1 -Domain contoso.com -FederationMeta -SeamlessSSO
+    .\Invoke-EntraEnum.ps1 -Domain example.com -FederationMeta -SeamlessSSO
     # Check federation metadata and SSO configuration
 
 .EXAMPLE
-    .\Invoke-EntraEnum.ps1 -Domain contoso.com -SubdomainEnum -TenantName contoso
+    .\Invoke-EntraEnum.ps1 -Domain example.com -SubdomainEnum -TenantName example
     # Enumerate Azure subdomains for tenant
 
 .EXAMPLE
-    .\Invoke-EntraEnum.ps1 -Domain contoso.com -MailEnum
+    .\Invoke-EntraEnum.ps1 -Domain example.com -MailEnum
     # Enhanced mail security analysis (DMARC, DKIM, MTA-STS, etc.)
 
 .EXAMPLE
-    .\Invoke-EntraEnum.ps1 -Domain contoso.com -OAuthProbe
+    .\Invoke-EntraEnum.ps1 -Domain example.com -OAuthProbe
     # Probe OAuth configuration and accessible applications
 #>
 
@@ -1282,7 +1282,7 @@ function Test-OneDriveUser {
         Error = $null
     }
 
-    # Convert email to OneDrive path format: user@contoso.com -> user_contoso_com
+    # Convert email to OneDrive path format: user@example.com -> user_example_com
     $userPath = $Email -replace '@', '_' -replace '\.', '_'
     $url = "https://$TenantName-my.sharepoint.com/personal/$userPath/_layouts/15/onedrive.aspx"
     $userResult.OneDrivePath = $url
@@ -3255,9 +3255,9 @@ function Main {
         Write-Host "[ERROR] You must specify either -Domain or email input (-Email, -Emails, or -EmailList)" -ForegroundColor Red
         Write-Host ""
         Write-Host "Usage examples:" -ForegroundColor Cyan
-        Write-Host "  .\Invoke-EntraEnum.ps1 -Domain contoso.com" -ForegroundColor Gray
-        Write-Host "  .\Invoke-EntraEnum.ps1 -Email user@contoso.com -UserEnum" -ForegroundColor Gray
-        Write-Host "  .\Invoke-EntraEnum.ps1 -Domain contoso.com -All" -ForegroundColor Gray
+        Write-Host "  .\Invoke-EntraEnum.ps1 -Domain example.com" -ForegroundColor Gray
+        Write-Host "  .\Invoke-EntraEnum.ps1 -Email user@example.com -UserEnum" -ForegroundColor Gray
+        Write-Host "  .\Invoke-EntraEnum.ps1 -Domain example.com -All" -ForegroundColor Gray
         exit 1
     }
 

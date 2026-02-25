@@ -462,10 +462,10 @@ ABAC conditions restrict what actions a role assignment grants. For example, a S
 
 ```
 [HIGH] CONDITION_MISMATCH
-  Tenant: contoso (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+  Tenant: example (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
   Subscription: Production
   Role: Storage Blob Data Contributor
-  Principal: john.doe@contoso.com (User)
+  Principal: john.doe@example.com (User)
   Issue: ABAC condition removed
   Condition (Baseline): @Resource[Microsoft.Storage/...] StringEquals 'container-a'
   Condition (Current): [none]
