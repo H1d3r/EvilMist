@@ -291,7 +291,7 @@ MATRIX VIEW - MICROSOFT TEAMS SECURITY AUDIT
 
 [TENANT INFORMATION]
 --------------------------------------------------------------------------------
-  Tenant Name: Contoso
+  Tenant Name: example
   Tenant ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
 [EXTERNAL ACCESS (FEDERATION)]

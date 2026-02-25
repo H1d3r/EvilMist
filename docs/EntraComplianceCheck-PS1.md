@@ -322,7 +322,7 @@ Compliance Score: 68.2%
 EXECUTIVE COMPLIANCE REPORT
 ================================================================================
 
-Organization: Contoso Inc
+Organization: example Inc
 Tenant ID: 12345678-1234-1234-1234-123456789012
 Assessment Date: 2026-01-21 14:30:45
 Framework(s): All

@@ -75,27 +75,27 @@ This script is designed for reconnaissance phases where authentication is not ye
 
 ```powershell
 # Default enumeration (TenantInfo, DomainRealm, DnsEnum)
-.\scripts\powershell\Invoke-EntraEnum.ps1 -Domain contoso.com
+.\scripts\powershell\Invoke-EntraEnum.ps1 -Domain example.com
 
 # Using dispatcher
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com
 ```
 
 ### Tenant Discovery Only
 
 ```powershell
 # Get tenant information
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -TenantInfo
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -TenantInfo
 ```
 
 ### User Enumeration
 
 ```powershell
 # Check single email via GetCredentialType
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Email admin@contoso.com -UserEnum
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Email admin@example.com -UserEnum
 
 # Check multiple emails
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Emails "user1@contoso.com","user2@contoso.com" -UserEnum
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Emails "user1@example.com","user2@example.com" -UserEnum
 
 # Check from file (one email per line)
 .\Invoke-EvilMist.ps1 -Script EntraEnum -EmailList users.txt -UserEnum
@@ -108,44 +108,44 @@ This script is designed for reconnaissance phases where authentication is not ye
 
 ```powershell
 # Silent user enumeration via OneDrive - completely undetectable!
-.\Invoke-EvilMist.ps1 -Script EntraEnum -EmailList users.txt -OneDriveEnum -TenantName contoso
+.\Invoke-EvilMist.ps1 -Script EntraEnum -EmailList users.txt -OneDriveEnum -TenantName example
 
 # Combined with standard user enum for cross-validation
-.\Invoke-EvilMist.ps1 -Script EntraEnum -EmailList users.txt -UserEnum -OneDriveEnum -TenantName contoso
+.\Invoke-EvilMist.ps1 -Script EntraEnum -EmailList users.txt -UserEnum -OneDriveEnum -TenantName example
 ```
 
 ### Federation and SSO Analysis
 
 ```powershell
 # Check federation metadata and SSO configuration
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -FederationMeta -SeamlessSSO
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -FederationMeta -SeamlessSSO
 
 # Federation metadata only (extract signing certificates)
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -FederationMeta
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -FederationMeta
 ```
 
 ### Azure Subdomain Enumeration
 
 ```powershell
 # Enumerate Azure subdomains for tenant
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -SubdomainEnum -TenantName contoso
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -SubdomainEnum -TenantName example
 
 # With custom wordlist for permutations
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -SubdomainEnum -TenantName contoso -WordList wordlist.txt
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -SubdomainEnum -TenantName example -WordList wordlist.txt
 ```
 
 ### Enhanced Mail Security Analysis
 
 ```powershell
 # Full mail security analysis (DMARC, DKIM, MTA-STS, BIMI, TLS-RPT)
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -MailEnum
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -MailEnum
 ```
 
 ### OAuth Configuration Probe
 
 ```powershell
 # Probe OAuth configuration and discover accessible applications
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -OAuthProbe
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -OAuthProbe
 ```
 
 ### Autodiscover V1 Enumeration
@@ -159,84 +159,84 @@ This script is designed for reconnaissance phases where authentication is not ye
 
 ```powershell
 # Probe EWS endpoints for exposure
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -EwsProbe
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -EwsProbe
 ```
 
 ### SharePoint / Teams Discovery
 
 ```powershell
 # Discover tenant roots and common SharePoint/Teams sites
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -SharePointEnum -TenantName contoso
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -SharePointEnum -TenantName example
 
 # Use a custom SharePoint site wordlist
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -SharePointEnum -TenantName contoso -SharePointWordList sites.txt
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -SharePointEnum -TenantName example -SharePointWordList sites.txt
 ```
 
 ### Lync / Skype Discovery
 
 ```powershell
 # Probe Lync/Skype discovery endpoints
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -LyncProbe
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -LyncProbe
 ```
 
 ### DNS Reconnaissance
 
 ```powershell
 # DNS records only
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -DnsEnum
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -DnsEnum
 ```
 
 ### Port Scanning
 
 ```powershell
 # Scan default ports
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -PortScan
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -PortScan
 
 # Scan specific ports
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -PortScan -Ports 443,80,3389
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -PortScan -Ports 443,80,3389
 
 # Custom timeout
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -PortScan -PortTimeout 2000
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -PortScan -PortTimeout 2000
 ```
 
 ### Full Enumeration
 
 ```powershell
 # Run all methods
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -All -TenantName contoso -EmailList users.txt
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -All -TenantName example -EmailList users.txt
 
 # All methods with export
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -All -ExportPath results.json
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -All -ExportPath results.json
 ```
 
 ### Stealth Mode
 
 ```powershell
 # Enable stealth with default settings (500ms + 300ms jitter)
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -All -EnableStealth
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -All -EnableStealth
 
 # Custom delay settings
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -All -RequestDelay 2 -RequestJitter 1
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -All -RequestDelay 2 -RequestJitter 1
 
 # Stealth without verbose output
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -All -EnableStealth -QuietStealth
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -All -EnableStealth -QuietStealth
 ```
 
 ### Export Results
 
 ```powershell
 # Export to JSON
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -All -ExportPath results.json
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -All -ExportPath results.json
 
 # Export to CSV
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -All -ExportPath results.csv
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -All -ExportPath results.csv
 ```
 
 ### Matrix View
 
 ```powershell
 # Display results in table format
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -All -Matrix
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -All -Matrix
 ```
 
 ## Parameters
@@ -245,7 +245,7 @@ This script is designed for reconnaissance phases where authentication is not ye
 
 | Parameter | Type | Description | Default |
 |-----------|------|-------------|---------|
-| `Domain` | String | Target domain (e.g., contoso.com) | None |
+| `Domain` | String | Target domain (e.g., example.com) | None |
 | `Email` | String | Single email for user existence check | None |
 | `Emails` | String[] | Array of emails for bulk enumeration | None |
 | `EmailList` | String | Path to file with emails (one per line) | None |
@@ -691,9 +691,9 @@ GET https://login.microsoftonline.com/{TENANT}/oauth2/v2.0/authorize?client_id={
 {
   "ExportDate": "2024-01-15 14:30:00",
   "Summary": {
-    "Domain": "contoso.com",
+    "Domain": "example.com",
     "TenantId": "12345678-1234-1234-1234-123456789012",
-    "TenantName": "contoso",
+    "TenantName": "example",
     "IsFederated": false,
     "UsersChecked": 10,
     "UsersExist": 3,
@@ -812,16 +812,16 @@ GET https://login.microsoftonline.com/{TENANT}/oauth2/v2.0/authorize?client_id={
 
 ```powershell
 # Verbose stealth output
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -EnableStealth
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -EnableStealth
 
 # Increase throttle for user enum
 .\Invoke-EvilMist.ps1 -Script EntraEnum -EmailList users.txt -UserEnum -Throttle 3
 
 # Longer port timeout
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain contoso.com -PortScan -PortTimeout 5000
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Domain example.com -PortScan -PortTimeout 5000
 
 # Test OneDrive with explicit tenant name
-.\Invoke-EvilMist.ps1 -Script EntraEnum -Email user@contoso.com -OneDriveEnum -TenantName contoso
+.\Invoke-EvilMist.ps1 -Script EntraEnum -Email user@example.com -OneDriveEnum -TenantName example
 ```
 
 ---
@@ -868,14 +868,14 @@ GNU General Public License v3.0
     https://logisek.com | info@logisek.com
     GNU General Public License v3.0
 
-[*] Target: contoso.com
+[*] Target: example.com
 
 ======================================================================
 TENANT DISCOVERY
 ======================================================================
 [*] Querying azmap.dev API...
 [+] Tenant ID: 12345678-1234-1234-1234-123456789012
-[+] Tenant Name: Contoso Inc
+[+] Tenant Name: example Inc
 [+] Region: US
 [*] Querying OpenID configuration...
 [+] Token Endpoint: https://login.microsoftonline.com/.../oauth2/v2.0/token
@@ -893,12 +893,12 @@ DOMAIN REALM INFORMATION
 ONEDRIVE USER ENUMERATION (SILENT)
 ======================================================================
 [*] Checking 3 email address(es) via OneDrive...
-[*] Tenant: contoso
+[*] Tenant: example
 [!] This method is completely undetectable - no audit logs generated
 
-[+] admin@contoso.com - EXISTS (Status: 403)
-[+] user1@contoso.com - EXISTS (Status: 403)
-[-] nonexistent@contoso.com - Does Not Exist (Status: 404)
+[+] admin@example.com - EXISTS (Status: 403)
+[+] user1@example.com - EXISTS (Status: 403)
+[-] nonexistent@example.com - Does Not Exist (Status: 404)
 
 [*] OneDrive enumeration complete: 2 of 3 exist
 
@@ -914,15 +914,15 @@ SEAMLESS SSO DETECTION
 ======================================================================
 AZURE SUBDOMAIN ENUMERATION
 ======================================================================
-[*] Checking Azure subdomains for tenant: contoso
+[*] Checking Azure subdomains for tenant: example
 [*] Core patterns: 26
 [*] Permutations: 19
 
-[+] contoso.onmicrosoft.com (Primary Tenant Domain)
-[+] contoso.sharepoint.com (SharePoint)
-[+] contoso-my.sharepoint.com (OneDrive)
-[+] contoso.blob.core.windows.net (Azure Blob Storage)
-[+] contoso.vault.azure.net (Key Vault)
+[+] example.onmicrosoft.com (Primary Tenant Domain)
+[+] example.sharepoint.com (SharePoint)
+[+] example-my.sharepoint.com (OneDrive)
+[+] example.blob.core.windows.net (Azure Blob Storage)
+[+] example.vault.azure.net (Key Vault)
 
 [*] Subdomain enumeration complete: 5 of 50 found
 
@@ -930,11 +930,11 @@ AZURE SUBDOMAIN ENUMERATION
 ENHANCED MAIL SECURITY ENUMERATION
 ======================================================================
 [*] Checking MX records...
-[+] MX: contoso-com.mail.protection.outlook.com (Priority: 0) [Exchange Online]
+[+] MX: example-com.mail.protection.outlook.com (Priority: 0) [Exchange Online]
 [*] Checking SPF record...
 [+] SPF: v=spf1 include:spf.protection.outlook.com -all
 [*] Checking DMARC record...
-[+] DMARC: v=DMARC1; p=reject; rua=mailto:dmarc@contoso.com
+[+] DMARC: v=DMARC1; p=reject; rua=mailto:dmarc@example.com
 [*] Checking DKIM selectors...
 [+] DKIM (selector1): Found
 [+] DKIM (selector2): Found
@@ -948,7 +948,7 @@ ENHANCED MAIL SECURITY ENUMERATION
 ENUMERATION SUMMARY
 ======================================================================
 
-  Target Domain:     contoso.com
+  Target Domain:     example.com
   Tenant ID:         12345678-1234-1234-1234-123456789012
   Federated:         No (Azure AD Managed)
   OneDrive Checked:  3

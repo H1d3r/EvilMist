@@ -344,7 +344,7 @@ MATRIX VIEW - GUEST ACCOUNTS
 
 Risk   MFA Status  Invite    User Principal Name                Display Name      Guest Domain      Last Sign-In
 ----   --- ------  ------    -------------------                ------------      ------------      ------------
-HIGH   No  Enabled Accepted  john_contoso.com#EXT#@...         John Doe          contoso.com       5d ago
+HIGH   No  Enabled Accepted  john_example.com#EXT#@...         John Doe          example.com       5d ago
 LOW    Yes Enabled Accepted  jane_partner.com#EXT#@...         Jane Smith        partner.com       Today
 MEDIUM No  Enabled Pending   bob_vendor.com#EXT#@...           Bob Wilson        vendor.com        Never
 LOW    No  Disabled Accepted old_user.com#EXT#@...             Old User          oldcorp.com       120d ago
@@ -360,7 +360,7 @@ Total guest accounts found: 4
   Without MFA: 3
 
 [TOP GUEST DOMAINS]
-  contoso.com: 1
+  example.com: 1
   partner.com: 1
   vendor.com: 1
 
@@ -379,7 +379,7 @@ Total guest accounts found: 4
 #### CSV Export
 ```csv
 DisplayName,UserPrincipalName,Email,GuestDomain,CompanyName,AccountEnabled,CanSignIn,InviteStatus,JobTitle,Department,CreatedDateTime,DaysOld,InviteAcceptedDate,DaysSinceAccepted,LastSignIn,LastSignInDisplay,DaysSinceLastSignIn,SignInType,MFAEnabled,AuthMethods,MethodCount,HasLicenses,LicenseCount,RiskLevel,UserType,IsEdgeCase,EdgeCaseIndicators
-John Doe,john_contoso.com#EXT#@tenant.onmicrosoft.com,john@contoso.com,contoso.com,Contoso Corp,True,True,Accepted,Consultant,IT,2024-01-15,342,2024-01-16,341,2024-12-17,2024-12-17 10:30:00 (5 days ago),5,Interactive,False,Password Only,1,False,0,HIGH,Guest,False,
+John Doe,john_example.com#EXT#@tenant.onmicrosoft.com,john@example.com,example.com,example Corp,True,True,Accepted,Consultant,IT,2024-01-15,342,2024-01-16,341,2024-12-17,2024-12-17 10:30:00 (5 days ago),5,Interactive,False,Password Only,1,False,0,HIGH,Guest,False,
 Jane Smith,jane_partner.com#EXT#@tenant.onmicrosoft.com,jane@partner.com,partner.com,Partner Corp,True,True,External (Converted/Synced),,Marketing,2023-06-10,560,,,2024-12-20,2024-12-20 14:00:00 (2 days ago),2,Interactive,True,Phone; Authenticator App,3,True,1,LOW,Member,True,UPN contains #EXT#; Has ExternalUserState
 ```
 
@@ -388,10 +388,10 @@ Jane Smith,jane_partner.com#EXT#@tenant.onmicrosoft.com,jane@partner.com,partner
 [
   {
     "DisplayName": "John Doe",
-    "UserPrincipalName": "john_contoso.com#EXT#@tenant.onmicrosoft.com",
-    "Email": "john@contoso.com",
-    "GuestDomain": "contoso.com",
-    "CompanyName": "Contoso Corp",
+    "UserPrincipalName": "john_example.com#EXT#@tenant.onmicrosoft.com",
+    "Email": "john@example.com",
+    "GuestDomain": "example.com",
+    "CompanyName": "example Corp",
     "AccountEnabled": true,
     "CanSignIn": true,
     "InviteStatus": "Accepted",

@@ -54,7 +54,7 @@
     Optional Tenant ID. If not specified, uses the user's home tenant.
 
 .PARAMETER AdminUrl
-    SharePoint Admin URL (e.g., https://contoso-admin.sharepoint.com).
+    SharePoint Admin URL (e.g., https://example-admin.sharepoint.com).
     If not specified, will attempt to auto-detect from tenant.
 
 .PARAMETER UseAzCliToken
@@ -628,7 +628,7 @@ function Get-SharePointAdminUrl {
     # Prompt user for tenant name if auto-detection failed
     Write-Host "[!] Could not auto-detect SharePoint Admin URL" -ForegroundColor Yellow
     Write-Host "[*] Please enter your SharePoint tenant name or URL" -ForegroundColor Cyan
-    Write-Host "    Examples: 'contoso' or 'https://contoso.sharepoint.com'" -ForegroundColor Gray
+    Write-Host "    Examples: 'example' or 'https://example.sharepoint.com'" -ForegroundColor Gray
     $manualInput = Read-Host "SharePoint tenant"
     
     if ([string]::IsNullOrWhiteSpace($manualInput)) {
@@ -636,7 +636,7 @@ function Get-SharePointAdminUrl {
         return $null
     }
     
-    # Handle just tenant name input (e.g., "contoso")
+    # Handle just tenant name input (e.g., "example")
     if ($manualInput -notmatch '\.') {
         $adminUrl = "https://$manualInput-admin.sharepoint.com"
         Write-Host "[*] Using Admin URL: $adminUrl" -ForegroundColor Cyan

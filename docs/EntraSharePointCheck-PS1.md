@@ -70,7 +70,7 @@ This script performs a comprehensive audit of SharePoint Online security to iden
 |-----------|------|---------|-------------|
 | `-ExportPath` | String | None | Path to export results (CSV or JSON based on extension) |
 | `-TenantId` | String | None | Optional Tenant ID. Uses user's home tenant if not specified |
-| `-AdminUrl` | String | None | SharePoint Admin URL (e.g., https://contoso-admin.sharepoint.com) |
+| `-AdminUrl` | String | None | SharePoint Admin URL (e.g., https://example-admin.sharepoint.com) |
 | `-UseAzCliToken` | Switch | False | Use Azure CLI cached token for authentication |
 | `-UseAzPowerShellToken` | Switch | False | Use Azure PowerShell cached token for authentication |
 | `-EnableStealth` | Switch | False | Enable stealth mode with default delays and jitter |
@@ -96,7 +96,7 @@ This script performs a comprehensive audit of SharePoint Online security to iden
 .\Invoke-EntraSharePointCheck.ps1
 
 # With specific Admin URL
-.\Invoke-EntraSharePointCheck.ps1 -AdminUrl "https://contoso-admin.sharepoint.com"
+.\Invoke-EntraSharePointCheck.ps1 -AdminUrl "https://example-admin.sharepoint.com"
 ```
 
 ### Export Results
@@ -243,7 +243,7 @@ SITE DETAILS:
 --------------------------------------------------------------------------------
 
 [CRITICAL] Marketing Team Site
-  URL: https://contoso.sharepoint.com/sites/marketing
+  URL: https://example.sharepoint.com/sites/marketing
   Sharing: Anyone (anonymous links)
   [!] MORE PERMISSIVE than tenant default
   [!] No sensitivity label applied
@@ -271,10 +271,10 @@ MATRIX VIEW - SHAREPOINT ONLINE SECURITY AUDIT
 --------------------------------------------------------------------------------
 Risk      Site Title                 Sharing                Override  Anonymous  Label  URL
 ----      ----------                 -------                --------  ---------  -----  ---
-CRITICAL  Marketing Team Site        Anyone (anonymous)     YES       YES        No     https://contoso.sharepoint...
-HIGH      Sales Portal               Anyone (anonymous)     -         YES        No     https://contoso.sharepoint...
-MEDIUM    HR Documents               New and existing guests-         -          Yes    https://contoso.sharepoint...
-LOW       IT Knowledge Base          Existing guests only   -         -          Yes    https://contoso.sharepoint...
+CRITICAL  Marketing Team Site        Anyone (anonymous)     YES       YES        No     https://example.sharepoint...
+HIGH      Sales Portal               Anyone (anonymous)     -         YES        No     https://example.sharepoint...
+MEDIUM    HR Documents               New and existing guests-         -          Yes    https://example.sharepoint...
+LOW       IT Knowledge Base          Existing guests only   -         -          Yes    https://example.sharepoint...
 
 ================================================================================
 
@@ -338,7 +338,7 @@ Sites with findings: 12
 4. **Site-Level Controls**
    ```powershell
    # Prevent non-owners from sharing
-   Set-PnPSite -Identity "https://contoso.sharepoint.com/sites/sensitive" `
+   Set-PnPSite -Identity "https://example.sharepoint.com/sites/sensitive" `
        -DisableSharingForNonOwnersStatus $true
    ```
 
